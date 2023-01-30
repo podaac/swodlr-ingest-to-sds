@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "swodlr-catalog-to-sds"
+version = "0.0.1"
+description = "A system for cataloging input products for the SWOT SDS"
+authors = ["Joshua Garde <jgarde@jpl.nasa.gov>"]
+license = "Apache-2.0"
+readme = "README.md"
+packages = [
+  { include = "podaac/swodlr", from = "src" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.dev.dependencies]
+boto3 = "^1.26.59"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
