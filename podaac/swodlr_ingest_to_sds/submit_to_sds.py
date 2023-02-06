@@ -1,0 +1,141 @@
+import boto3
+from datetime import datetime
+import json
+import logging
+from pathlib import PurePath
+from urllib.parse import urlsplit, urlunsplit
+from podaac.swodlr_ingest_to_sds.utils import (
+    mozart_client, get_param, ingest_table
+)
+
+ACCEPTED_EXTS = ['nc']
+PCM_RELEASE_TAG = get_param('sds_pcm_release_tag')
+
+dynamodb = boto3.client('dynamodb')
+ingest_table_name = get_param('ingest_table_name')
+ingest_job_type = mozart_client.get_job_type(
+    f'job-INGEST_STAGED:{PCM_RELEASE_TAG}'
+)
+
+ingest_job_type.initialize()
+
+
+def lambda_handler(event, context):
+    logging.debug('Records received: %d', len(event['Records']))
+
+    granules = {}
+    for record in event['Records']:
+        granule = _parse_record(record)
+        granules[granule['id']] = granule
+
+    lookup_results = dynamodb.batch_get_item(
+        RequestItems={
+            ingest_table_name: {
+                'Keys': [{'granule_id': {'S': granule['id']}}
+                         for granule in granules]
+            }
+        },
+        ProjectionExpression='granule_id',
+        ReturnConsumedCapacity='NONE'
+    )
+
+    for item in lookup_results['Responses'][ingest_table_name]:
+        granule_id = item['granule_id']['S']
+        if granule_id in granules:
+            logging.info('Granule already ingested: %s', granule_id)
+            del granules[granule_id]
+
+    jobs = []
+    with ingest_table.batch_writer() as batch:
+        for granule in granules.values():
+            job = _ingest_granule(granule)
+            jobs.append({'granule_id': granule['id'], 'job_id': job['job_id']})
+
+            batch.put_item(
+                Item={
+                    'granule_id': {'S': granule['id']},
+                    's3_url': {'S': granule['s3_url']},
+                    'job_id': {'S': job['job_id']},
+                    'status': {'S': job['status']},
+                    'last_check': {'S': job['timestamp']}
+                }
+            )
+
+    return {'jobs': jobs}
+
+
+def _parse_record(record):
+    cmr_r_message = json.loads(record['body'])
+    id = cmr_r_message['identifier']
+    filename, s3_url = _extract_s3_url(cmr_r_message)
+
+    return {
+        'id': id,
+        'filename': filename,
+        's3_url': s3_url
+    }
+
+
+def _ingest_granule(granule):
+    filename = granule['filename']
+    s3_url = granule['s3_url']
+
+    logging.debug('Ingesting granule id: %s', granule['id'])
+
+    job_params = _gen_mozart_job_params(filename, s3_url)
+    tag = f'ingest_file_otello__{filename}'
+
+    ingest_job_type.set_input_params(job_params)
+    job = ingest_job_type.submit_job(tag=tag)
+    timestamp = datetime.now().isoformat()
+    logging.info('Submitted to sds: %s', id)
+
+    return {
+        'job_id': job.job_id,
+        'status': job.get_status(),
+        'timestamp': timestamp
+    }
+
+
+def _extract_s3_url(cnm_r_message):
+    files = cnm_r_message.product.files
+    for file in files:
+        ext = PurePath(file.name).suffix[1:].lower()
+        if ext in ACCEPTED_EXTS:
+            url_elements = urlsplit(file.uri)
+            path_segments = url_elements.path[1:].split('/')
+            s3_elements = (
+                's3',                         # scheme
+                path_segments[0],             # netloc
+                path_segments[1:].join('/'),  # path
+                '',                           # query
+                ''                            # fragment
+            )
+
+            s3_url = urlunsplit(s3_elements)
+            logging.debug("S3 url: %s", s3_elements)
+
+            return (file.name, s3_url)
+        else:
+            logging.debug('Rejected file: %s', file.name)
+
+    raise RuntimeError('No data file found')
+
+
+def _gen_mozart_job_params(filename, url):
+    params = {
+        'id': filename,
+        'data_url': url,
+        'data_file': filename,
+        'prod_met': {
+            'tags': ['ISL', url],
+            'met_required': False,
+            'restaged': False,
+            'ISL_urls': url
+        },
+        'create_hash': True,
+        'hash_type': 'md5',
+        'update_s3_tag': False
+    }
+
+    return params

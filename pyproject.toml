@@ -1,19 +1,23 @@
 [tool.poetry]
-name = "swodlr-catalog-to-sds"
+name = "swodlr-ingest-to-sds"
 version = "0.0.1"
-description = "A system for cataloging input products for the SWOT SDS"
-authors = ["Joshua Garde <jgarde@jpl.nasa.gov>"]
+description = "A system for ingesting input products for the SWOT SDS"
+authors = ["podaac-tva <podaac-tva@jpl.nasa.gov>"]
 license = "Apache-2.0"
 readme = "README.md"
 packages = [
-  { include = "podaac/swodlr", from = "src" }
+  { include = "podaac" }
 ]
 
 [tool.poetry.dependencies]
 python = "^3.11"
+otello = {git = "https://github.com/hysds/otello.git"}
 
 [tool.poetry.group.dev.dependencies]
 boto3 = "^1.26.59"
+pytest = "^7.2.1"
+python-dotenv = "^0.21.1"
+flake8 = "^6.0.0"
 
 [build-system]
 requires = ["poetry-core"]
