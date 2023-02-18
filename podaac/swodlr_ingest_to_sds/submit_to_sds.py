@@ -32,7 +32,7 @@ def lambda_handler(event, context):
         RequestItems={
             ingest_table_name: {
                 'Keys': [{'granule_id': {'S': granule['id']}}
-                         for granule in granules]
+                         for granule in granules.values()]
             }
         },
         ProjectionExpression='granule_id',
@@ -98,16 +98,20 @@ def _ingest_granule(granule):
 
 
 def _extract_s3_url(cnm_r_message):
-    files = cnm_r_message.product.files
+    files = cnm_r_message['product']['files']
     for file in files:
-        ext = PurePath(file.name).suffix[1:].lower()
+        ext = PurePath(file['name']).suffix[1:].lower()
         if ext in ACCEPTED_EXTS:
-            url_elements = urlsplit(file.uri)
+            url_elements = urlsplit(file['uri'])
+            if url_elements.scheme == 's3':
+                # Accept s3 urls as-is
+                return (file['name'], file['uri'])
+
             path_segments = url_elements.path[1:].split('/')
             s3_elements = (
                 's3',                         # scheme
                 path_segments[0],             # netloc
-                path_segments[1:].join('/'),  # path
+                '/'.join(path_segments[1:]),  # path
                 '',                           # query
                 ''                            # fragment
             )
@@ -115,9 +119,9 @@ def _extract_s3_url(cnm_r_message):
             s3_url = urlunsplit(s3_elements)
             logging.debug("S3 url: %s", s3_elements)
 
-            return (file.name, s3_url)
+            return (file['name'], s3_url)
         else:
-            logging.debug('Rejected file: %s', file.name)
+            logging.debug('Rejected file: %s', file['name'])
 
     raise RuntimeError('No data file found')
 
