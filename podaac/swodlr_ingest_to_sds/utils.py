@@ -34,17 +34,18 @@ class Utils:
         if (self.env == 'prod'):
             return self._ssm_parameters.get(name)
         else:
-            return getenv(f'SWODLR_{name}')
+            return getenv(f'{self.APP_NAME.upper()}_{name}')
 
     @property
     def mozart_client(self):
         if not hasattr(self, '_mozart_client'):
-            client = Mozart('/dev/null', Session())
-
-            client._cfg = {
+            cfg = {
                 'host': self.get_param('sds_host'),
-                'username': self.get_param('sds_username')
+                'auth': True,
+                'username': self.get_param('sds_username'),
+                'password': self.get_param('sds_password')
             }
+            client = Mozart(cfg)
 
             self._mozart_client = client
 
