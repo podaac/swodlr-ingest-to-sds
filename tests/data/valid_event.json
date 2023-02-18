@@ -1,0 +1,37 @@
+{
+  "Records": [
+    {
+      "messageId": "2c3de903-baf2-432c-9652-e3b4ccbfc34b",
+      "receiptHandle": "ABCDEF",
+      "body": "{\"identifier\":\"test-1\",\"product\":{\"files\":[{\"type\":\"metadata\",\"name\":\"test-1.json\",\"uri\":\"https://domain.test/bucket/test/test-1.json\"},{\"type\":\"data\",\"name\":\"test-1.nc\",\"uri\":\"https://domain.test/bucket/test/test-1.nc\"}]}}",
+      "attributes": {},
+      "messageAttributes": {},
+      "md5OfBody": "",
+      "eventSource": "aws:sqs",
+      "eventSourceARN": "arn:aws:sqs:us-east-2:123456789012:queue",
+      "awsRegion": "us-west-2"
+    },
+    {
+      "messageId": "656f50b7-e353-46b8-b2fb-52dcf006e83c",
+      "receiptHandle": "GHIJKL",
+      "body": "{\"identifier\":\"test-2\",\"product\":{\"files\":[{\"type\":\"metadata\",\"name\":\"test-2.json\",\"uri\":\"https://domain.test/bucket/test/test-2.json\"},{\"type\":\"data\",\"name\":\"test-2.nc\",\"uri\":\"https://domain.test/bucket/test/test-2.nc\"}]}}",
+      "attributes": {},
+      "messageAttributes": {},
+      "md5OfBody": "",
+      "eventSource": "aws:sqs",
+      "eventSourceARN": "arn:aws:sqs:us-east-2:123456789012:queue",
+      "awsRegion": "us-east-2"
+    },
+    {
+      "messageId": "0bfe9a13-51c0-477e-8798-9eddc71ea3f3",
+      "receiptHandle": "MNOPQR",
+      "body": "{\"identifier\":\"test-3\",\"product\":{\"files\":[{\"type\":\"metadata\",\"name\":\"test-3.json\",\"uri\":\"https://domain.test/bucket/test/test-3.json\"},{\"type\":\"data\",\"name\":\"test-3.nc\",\"uri\":\"https://domain.test/bucket/test/test-3.nc\"}]}}",
+      "attributes": {},
+      "messageAttributes": {},
+      "md5OfBody": "",
+      "eventSource": "aws:sqs",
+      "eventSourceARN": "arn:aws:sqs:us-east-2:123456789012:queue",
+      "awsRegion": "us-east-2"
+    }
+  ]
+}
