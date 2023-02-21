@@ -9,10 +9,13 @@ from podaac.swodlr_ingest_to_sds.utils import (
 )
 
 ACCEPTED_EXTS = ['nc']
+INGEST_QUEUE_URL = get_param('ingest_queue_url')
+INGEST_TABLE_NAME = get_param('ingest_table_name')
 PCM_RELEASE_TAG = get_param('sds_pcm_release_tag')
 
 dynamodb = boto3.client('dynamodb')
-ingest_table_name = get_param('ingest_table_name')
+sqs = boto3.client('sqs')
+
 ingest_job_type = mozart_client.get_job_type(
     f'job-INGEST_STAGED:{PCM_RELEASE_TAG}'
 )
@@ -30,7 +33,7 @@ def lambda_handler(event, context):
 
     lookup_results = dynamodb.batch_get_item(
         RequestItems={
-            ingest_table_name: {
+            INGEST_TABLE_NAME: {
                 'Keys': [{'granule_id': {'S': granule['id']}}
                          for granule in granules.values()]
             }
@@ -39,7 +42,7 @@ def lambda_handler(event, context):
         ReturnConsumedCapacity='NONE'
     )
 
-    for item in lookup_results['Responses'][ingest_table_name]:
+    for item in lookup_results['Responses'][INGEST_TABLE_NAME]:
         granule_id = item['granule_id']['S']
         if granule_id in granules:
             logging.info('Granule already ingested: %s', granule_id)
@@ -60,6 +63,14 @@ def lambda_handler(event, context):
                     'last_check': {'S': job['timestamp']}
                 }
             )
+
+    sqs.delete_message_batch(
+        QueueUrl=INGEST_QUEUE_URL,
+        Entries=[
+            {'Id': record['messageId'], 'ReceiptHandle': record['receiptHandle']}
+            for record in event['Records']
+        ]
+    )
 
     return {'jobs': jobs}
 
