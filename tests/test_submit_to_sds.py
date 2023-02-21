@@ -13,7 +13,8 @@ with (
     'SWODLR_ENV': 'dev',
     'SWODLR_sds_username': 'AAAAAA',
     'SWODLR_sds_password': 'BBBBBB',
-    'SWODLR_ingest_table_name': 'CCCCCC'
+    'SWODLR_ingest_table_name': 'CCCCCC',
+    'SWODLR_ingest_queue_url': 'DDDDDD'
   })
 ):
   from podaac.swodlr_ingest_to_sds import submit_to_sds, utils
@@ -82,7 +83,7 @@ class TestSubmitToSds(TestCase):
       self.assertIn(call.kwargs['tag'], valid_tags)
       valid_tags.remove(call.kwargs['tag'])
 
-    # batch_get_item calls
+    # batch_get_item call
     submit_to_sds.dynamodb.batch_get_item.assert_called_once_with(
       RequestItems={
         'CCCCCC': {
@@ -97,11 +98,22 @@ class TestSubmitToSds(TestCase):
       ReturnConsumedCapacity='NONE'
     )
 
+    # delete_message_batch call
+    submit_to_sds.sqs.delete_message_batch.assert_called_once_with(
+      QueueUrl='DDDDDD',
+      Entries=[
+        {'Id': 'MessageID_1', 'ReceiptHandle': 'ReceiptHandle_1'},
+        {'Id': 'MessageID_2', 'ReceiptHandle': 'ReceiptHandle_2'},
+        {'Id': 'MessageID_3', 'ReceiptHandle': 'ReceiptHandle_3'}
+      ]
+    )
+
     # reset mocks
     submit_to_sds.ingest_job_type.set_input_params.reset_mock()
     submit_to_sds.ingest_job_type.submit_job.reset_mock()
     utils.ingest_table.batch_writer().__enter__().put_item.reset_mock()
     submit_to_sds.dynamodb.batch_get_item.reset_mock()
+    submit_to_sds.sqs.delete_message_batch.reset_mock()
 
   def test_invalid_submit(self):
     with self.assertRaises(RuntimeError):
