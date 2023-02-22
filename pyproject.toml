@@ -11,13 +11,16 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.11"
-otello = {git = "https://github.com/hysds/otello.git"}
+otello = {git = "https://github.com/hysds/otello.git", branch = "develop"}
 
 [tool.poetry.group.dev.dependencies]
 boto3 = "^1.26.59"
 pytest = "^7.2.1"
 python-dotenv = "^0.21.1"
 flake8 = "^6.0.0"
+
+[tool.poetry.scripts]
+ingest = 'podaac.swodlr_ingest_to_sds.__main__:main'
 
 [build-system]
 requires = ["poetry-core"]
