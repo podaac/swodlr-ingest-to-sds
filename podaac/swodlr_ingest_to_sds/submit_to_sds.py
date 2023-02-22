@@ -99,11 +99,11 @@ def _ingest_granule(granule):
     ingest_job_type.set_input_params(job_params)
     job = ingest_job_type.submit_job(tag=tag)
     timestamp = datetime.now().isoformat()
-    logging.info('Submitted to sds: %s', id)
+    logging.info('Submitted to sds: %s', granule['id'])
 
     return {
         'job_id': job.job_id,
-        'status': job.get_status(),
+        'status': 'job-queued',
         'timestamp': timestamp
     }
 
@@ -148,7 +148,7 @@ def _gen_mozart_job_params(filename, url):
             'restaged': False,
             'ISL_urls': url
         },
-        'create_hash': True,
+        'create_hash': 'true', # Why is this a string?
         'hash_type': 'md5',
         'update_s3_tag': False
     }
