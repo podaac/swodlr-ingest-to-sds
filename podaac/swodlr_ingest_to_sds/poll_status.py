@@ -1,11 +1,11 @@
 from datetime import datetime
 from copy import deepcopy
 import logging
-from otello.mozart import Mozart, Job
+from otello.mozart import Mozart
 from podaac.swodlr_ingest_to_sds.utils import mozart_client, ingest_table
 
-SUCCESS_STATUSES = {Mozart.COMPLETED}
-FAIL_STATUSES = {Mozart.FAILED, Mozart.OFFLINE, Mozart.DEDUPED}
+SUCCESS_STATUSES = {'job-completed'}
+FAIL_STATUSES = {'job-failed', 'job-offline', 'job-deduped'}
 
 
 def lambda_handler(event, context):
@@ -15,12 +15,7 @@ def lambda_handler(event, context):
         granule_id = item['granule_id']
         job_id = item['job_id']
 
-        job = Job(
-            job_id=job_id,
-            cfg=mozart_client._cfg_file,  # pylint: disable=protected-access
-            session=mozart_client._session  # pylint: disable=protected-access
-        )
-        job._cfg = mozart_client._cfg  # pylint: disable=protected-access
+        job = mozart_client.get_job_by_id(job_id)
 
         try:
             status = job.get_status()
