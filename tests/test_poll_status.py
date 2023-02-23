@@ -1,10 +1,10 @@
+'''Tests for the poll_status module'''
 from unittest import TestCase
-from unittest.mock import patch, MagicMock
-from podaac.swodlr_ingest_to_sds import utils
-from otello.mozart import Mozart
+from unittest.mock import patch
 from pathlib import Path
 import json
 from os import environ
+from podaac.swodlr_ingest_to_sds import utils
 
 with (
     patch('boto3.client'),
@@ -17,14 +17,23 @@ with (
 ):
     from podaac.swodlr_ingest_to_sds import poll_status
 
+
 class TestPollStatus(TestCase):
+    '''Tests for the poll_status module'''
     data_path = Path(__file__).parent.joinpath('data')
     poll_event_path = data_path.joinpath('poll_event.json')
-    with open(poll_event_path) as f:
+    with open(poll_event_path, encoding='utf-8') as f:
         poll_event = json.load(f)
 
     def test_poll_status(self):
+        '''
+        Test the lambda handler for the poll_status module by submitting two
+        jobs, polling their status, verifying that the correct jobs are
+        updated in the database, and verifying that remaining jobs are
+        returned in the event.
+        '''
         _statuses = ['job-completed', 'job-started']
+
         def _mock_get_status():
             nonlocal _statuses
             return _statuses.pop()
@@ -47,6 +56,7 @@ class TestPollStatus(TestCase):
             'granule_id_2': 'job-completed'
         }
 
+        # pylint: disable=no-member
         update_item_calls = utils.ingest_table.update_item.call_args_list
         self.assertEqual(len(update_item_calls), 2)
         for call in update_item_calls:
