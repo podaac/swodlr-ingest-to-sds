@@ -1,3 +1,5 @@
+'''Command line tool for submitting an individual granule to the SDS'''
+
 from argparse import ArgumentParser
 import json
 import logging
@@ -13,6 +15,10 @@ with patch('boto3.client'), patch('boto3.resource'):
 
 
 def main():
+    '''
+    Main entry point for the script
+    '''
+
     parser = ArgumentParser()
     parser.add_argument('s3_url', help='S3 URL of granule to ingest')
     parser.add_argument('-v', '--verbose', action='store_true',

@@ -1,9 +1,11 @@
-import boto3
+'''Lambda to submit granules to the SDS for ingestion'''
 from datetime import datetime
 import json
 import logging
 from pathlib import PurePath
 from urllib.parse import urlsplit, urlunsplit
+import boto3
+# pylint: disable=no-name-in-module
 from podaac.swodlr_ingest_to_sds.utils import (
     mozart_client, get_param, ingest_table
 )
@@ -23,7 +25,12 @@ ingest_job_type = mozart_client.get_job_type(
 ingest_job_type.initialize()
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, _context):
+    '''
+    Lambda handler which submits granules to the SDS for ingestion if they are
+    not already ingested and inserts the granule and job info into DynamoDB
+    '''
+
     logging.debug('Records received: %d', len(event['Records']))
 
     granules = {}
@@ -67,7 +74,10 @@ def lambda_handler(event, context):
     sqs.delete_message_batch(
         QueueUrl=INGEST_QUEUE_URL,
         Entries=[
-            {'Id': record['messageId'], 'ReceiptHandle': record['receiptHandle']}
+            {
+                'Id': record['messageId'],
+                'ReceiptHandle': record['receiptHandle']
+            }
             for record in event['Records']
         ]
     )
@@ -77,11 +87,11 @@ def lambda_handler(event, context):
 
 def _parse_record(record):
     cmr_r_message = json.loads(record['body'])
-    id = cmr_r_message['identifier']
+    identifier = cmr_r_message['identifier']
     filename, s3_url = _extract_s3_url(cmr_r_message)
 
     return {
-        'id': id,
+        'id': identifier,
         'filename': filename,
         's3_url': s3_url
     }
@@ -131,8 +141,8 @@ def _extract_s3_url(cnm_r_message):
             logging.debug("S3 url: %s", s3_elements)
 
             return (file['name'], s3_url)
-        else:
-            logging.debug('Rejected file: %s', file['name'])
+
+        logging.debug('Rejected file: %s', file['name'])
 
     raise RuntimeError('No data file found')
 
@@ -148,7 +158,7 @@ def _gen_mozart_job_params(filename, url):
             'restaged': False,
             'ISL_urls': url
         },
-        'create_hash': 'true', # Why is this a string?
+        'create_hash': 'true',  # Why is this a string?
         'hash_type': 'md5',
         'update_s3_tag': False
     }
