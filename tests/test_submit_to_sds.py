@@ -1,6 +1,6 @@
+'''Tests for the submit_to_sds module'''
 from unittest import TestCase
 from unittest.mock import patch
-from podaac.swodlr_ingest_to_sds import utils
 from pathlib import Path
 import json
 from os import environ
@@ -21,21 +21,31 @@ with (
 
 
 class TestSubmitToSds(TestCase):
+    '''Tests for the submit_to_sds module'''
     data_path = Path(__file__).parent.joinpath('data')
     valid_event_path = data_path.joinpath('valid_sqs_event.json')
-    with open(valid_event_path) as f:
+    with open(valid_event_path, encoding='utf-8') as f:
         valid_event = json.load(f)
 
     invalid_event_path = data_path.joinpath('invalid_sqs_event.json')
-    with open(invalid_event_path) as f:
+    with open(invalid_event_path, encoding='utf-8') as f:
         invalid_event = json.load(f)
 
     def test_valid_submit(self):
+        '''
+        Test the lambda handler for the submit_to_sds module by submitting
+        three jobs, verifying all jobs are submitted, and verifying that
+        the correct items are added to the ingest table.
+        '''
+
         submit_to_sds.lambda_handler(self.valid_event, None)
 
-        input_calls = submit_to_sds.ingest_job_type.set_input_params.call_args_list
         submit_calls = submit_to_sds.ingest_job_type.submit_job.call_args_list
-        put_item_calls = utils.ingest_table.batch_writer().__enter__().put_item.call_args_list
+        input_calls = submit_to_sds.ingest_job_type.set_input_params\
+            .call_args_list
+        # pylint: disable=no-member,unnecessary-dunder-call
+        put_item_calls = utils.ingest_table.batch_writer().__enter__()\
+            .put_item.call_args_list
 
         self.assertEqual(len(input_calls), 3)
         self.assertEqual(len(submit_calls), 3)
@@ -111,10 +121,15 @@ class TestSubmitToSds(TestCase):
         # reset mocks
         submit_to_sds.ingest_job_type.set_input_params.reset_mock()
         submit_to_sds.ingest_job_type.submit_job.reset_mock()
+        # pylint: disable=no-member
         utils.ingest_table.batch_writer().__enter__().put_item.reset_mock()
         submit_to_sds.dynamodb.batch_get_item.reset_mock()
         submit_to_sds.sqs.delete_message_batch.reset_mock()
 
     def test_invalid_submit(self):
+        '''
+        Test the lambda handler for the submit_to_sds module by submitting
+        an invalid event, verifying that a RuntimeException is raised.
+        '''
         with self.assertRaises(RuntimeError):
             submit_to_sds.lambda_handler(self.invalid_event, None)

@@ -1,6 +1,7 @@
+'''Tests for the bootstrap module'''
 import os
 from unittest import TestCase
-from unittest.mock import DEFAULT, Mock, patch
+from unittest.mock import patch
 
 TEST_ARN = 'ABC123'
 
@@ -15,7 +16,13 @@ with (
 
 
 class TestBootstrap(TestCase):
+    '''Tests for the bootstrap module'''
+
     def test_bootstrap(self):
+        '''
+        Test the lambda handler of the bootstrap module by submitting an event
+        and checking output for the transformed event
+        '''
         event = {
             'a': 42,
             'b': True,
@@ -23,7 +30,10 @@ class TestBootstrap(TestCase):
         }
 
         with (
-            patch.object(bootstrap.stepfunctions, 'start_execution') as mock_exec
+            patch.object(
+                bootstrap.stepfunctions,
+                'start_execution'
+            ) as mock_exec
         ):
             bootstrap.lambda_handler(event, None)
             mock_exec.assert_called_once_with(
