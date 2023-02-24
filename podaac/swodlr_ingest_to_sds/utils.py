@@ -15,8 +15,6 @@ class Utils:
 
     def __init__(self):
         self.env = getenv('SWODLR_ENV', 'prod')
-        self._mozart_client = None
-        self._ingest_table = None
 
         if self.env == 'prod':
             self._load_params_from_ssm()
@@ -57,6 +55,7 @@ class Utils:
             }
             client = Mozart(cfg)
 
+            # pylint: disable=attribute-defined-outside-init
             self._mozart_client = client
 
         return self._mozart_client
@@ -68,8 +67,10 @@ class Utils:
         '''
         if not hasattr(self, '_ingest_table'):
             dynamodb = boto3.resource('dynamodb')
+            # pylint: disable=attribute-defined-outside-init
             self._ingest_table = dynamodb.Table(
-                self.get_param('ingest_table_name'))
+                self.get_param('ingest_table_name')
+            )
 
         return self._ingest_table
 
