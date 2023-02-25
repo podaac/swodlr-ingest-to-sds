@@ -33,7 +33,7 @@ def main():
 
     event = _gen_event(s3_url)
     event = submit_to_sds.lambda_handler(event, None)
-    while 'jobs' not in event or len(event['jobs']) > 0:
+    while len(event['jobs']) > 0:
         logging.info('Sleeping for 20 seconds')
         sleep(20)
         event = poll_status.lambda_handler(event, None)
