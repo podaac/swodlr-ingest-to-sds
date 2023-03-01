@@ -16,6 +16,7 @@ otello = {git = "https://github.com/hysds/otello.git", branch = "develop"}
 [tool.poetry.group.dev.dependencies]
 boto3 = "^1.26.59"
 pytest = "^7.2.1"
+exceptiongroup = { version = "^1.1.0", python = "<3.11" }
 python-dotenv = "^0.21.1"
 flake8 = "^6.0.0"
 bumpver = "^2022.1120"
