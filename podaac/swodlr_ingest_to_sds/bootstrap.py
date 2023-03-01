@@ -2,7 +2,6 @@
 import json
 import logging
 import boto3
-# pylint: disable=no-name-in-module
 from podaac.swodlr_ingest_to_sds.utils import get_param
 
 stepfunctions = boto3.client('stepfunctions')

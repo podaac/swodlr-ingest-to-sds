@@ -2,7 +2,6 @@
 from datetime import datetime
 from copy import deepcopy
 import logging
-# pylint: disable=no-name-in-module
 from podaac.swodlr_ingest_to_sds.utils import mozart_client, ingest_table
 
 SUCCESS_STATUSES = {'job-completed'}

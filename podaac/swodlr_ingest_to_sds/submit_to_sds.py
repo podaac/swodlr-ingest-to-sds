@@ -5,7 +5,6 @@ import logging
 from pathlib import PurePath
 from urllib.parse import urlsplit, urlunsplit
 import boto3
-# pylint: disable=no-name-in-module
 from podaac.swodlr_ingest_to_sds.utils import (
     mozart_client, get_param, ingest_table
 )
