@@ -12,6 +12,7 @@ packages = [
 [tool.poetry.dependencies]
 python = "^3.9"
 otello = {git = "https://github.com/hysds/otello.git", branch = "develop"}
+boto3-stubs-lite = {extras = ["dynamodb"], version = "^1.26.81"}
 
 [tool.poetry.group.dev.dependencies]
 boto3 = "^1.26.59"

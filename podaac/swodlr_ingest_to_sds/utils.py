@@ -1,9 +1,12 @@
 '''Shared utilities for ingest-to-sds lambdas'''
 import sys
+from typing import Callable
 from os import getenv
 import boto3
 from dotenv import load_dotenv
+from mypy_boto3_dynamodb.service_resource import Table
 from otello.mozart import Mozart
+
 
 load_dotenv()
 
@@ -73,6 +76,12 @@ class Utils:
             )
 
         return self._ingest_table
+
+
+# Silence the linters
+ingest_table: Table
+mozart_client: Mozart
+get_param: Callable[[str], str]
 
 
 sys.modules[__name__] = Utils()
