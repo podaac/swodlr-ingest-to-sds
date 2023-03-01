@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.9"
 otello = {git = "https://github.com/hysds/otello.git", branch = "develop"}
 
 [tool.poetry.group.dev.dependencies]
