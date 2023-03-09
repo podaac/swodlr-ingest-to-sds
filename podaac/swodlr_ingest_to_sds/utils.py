@@ -6,6 +6,8 @@ import boto3
 from dotenv import load_dotenv
 from mypy_boto3_dynamodb.service_resource import Table
 from otello.mozart import Mozart
+from requests import Session
+from tempfile import mkstemp
 
 
 load_dotenv()
@@ -50,16 +52,29 @@ class Utils:
         Lazily creates a Mozart client
         '''
         if not hasattr(self, '_mozart_client'):
+            host = self.get_param('sds_host')
+            username = self.get_param('sds_username')
+            password = self.get_param('sds_password')
+            ca_cert = self.get_param('sds_ca_cert')
+
+            session = Session()
+            session.auth = (username, password)
+
+            if ca_cert is not None:
+                cert_file, cert_path = mkstemp(text=True)
+                cert_file.write(ca_cert)
+                cert_file.flush()
+                session.verify = cert_path
+
             cfg = {
-                'host': self.get_param('sds_host'),
+                'host': host,
                 'auth': True,
-                'username': self.get_param('sds_username'),
-                'password': self.get_param('sds_password')
+                'username': username,
+                'password': password
             }
-            client = Mozart(cfg)
 
             # pylint: disable=attribute-defined-outside-init
-            self._mozart_client = client
+            self._mozart_client = Mozart(cfg, session=session)
 
         return self._mozart_client
 
