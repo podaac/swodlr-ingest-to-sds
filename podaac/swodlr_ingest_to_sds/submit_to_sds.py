@@ -92,9 +92,7 @@ def _parse_record(record):
     return {
         'id': identifier,
         'filename': filename,
-        's3_url': s3_url,
-        'messageId': record['messageId'],
-        'receiptHandle': record['receiptHandle']
+        's3_url': s3_url
     }
 
 
