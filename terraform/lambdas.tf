@@ -159,7 +159,7 @@ resource "aws_ssm_parameter" "sds_host" {
 }
 
 resource "aws_ssm_parameter" "sds_username" {
-  name  = "${local.service_path}/sds_pcm_release_tag"
+  name  = "${local.service_path}/sds_username"
   type  = "String"
   overwrite = true
   value = var.sds_username

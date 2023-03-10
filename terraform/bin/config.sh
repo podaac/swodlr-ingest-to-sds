@@ -8,7 +8,7 @@ then
 fi
 
 VENUE=$1
-source "environments/$VENUE.env"
+source "$(dirname $BASH_SOURCE)/../environments/$VENUE.env"
 
 export TF_IN_AUTOMATION=true  # https://www.terraform.io/cli/config/environment-variables#tf_in_automation
 export TF_INPUT=false  # https://www.terraform.io/cli/config/environment-variables#tf_input
