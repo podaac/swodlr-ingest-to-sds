@@ -27,30 +27,33 @@ def lambda_handler(event, _context):
             logging.debug('granule id: %s; job id: %s; status: %s',
                           granule_id, job_id, status)
 
-
-            updateExpression = (
+            update_expression = (
                 'SET status = :status'
                 ',last_check = :last_check'
             )
-            expressionAttributeValues = {
+            expression_attribute_values = {
                 ':status': {'S': status},
                 ':last_check': {'S': timestamp}
             }
 
             if 'traceback' in info:
-                updateExpression += ',traceback = :traceback'
-                expressionAttributeValues[':traceback'] = {'S': info['traceback']}
-            
+                update_expression += ',traceback = :traceback'
+                expression_attribute_values[':traceback'] = {
+                    'S': info['traceback']
+                }
+
             ingest_table.update_item(
                 Key={'granule_id': {'S': granule_id}},
-                UpdateExpression=updateExpression,
-                ExpressionAttributeValues=expressionAttributeValues
+                UpdateExpression=update_expression,
+                ExpressionAttributeValues=expression_attribute_values
             )
 
             if status in FAIL_STATUSES:
                 logging.error('Job id: %s; status: %s', job_id, status)
                 if 'traceback' in info:
-                    logging.error('Job id: %s; traceback: %s', job_id, info['traceback'])
+                    logging.error(
+                        'Job id: %s; traceback: %s', job_id, info['traceback']
+                    )
 
                 new_event['jobs'].remove(item)
             elif status in SUCCESS_STATUSES:

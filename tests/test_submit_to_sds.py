@@ -5,7 +5,6 @@ from pathlib import Path
 import json
 from os import environ
 
-from podaac.swodlr_ingest_to_sds.errors import DataNotFoundError
 
 with (
     patch('boto3.client'),
@@ -125,6 +124,6 @@ class TestSubmitToSds(TestCase):
 
         submit_to_sds.ingest_job_type.set_input_params.reset_mock()
         submit_to_sds.ingest_job_type.submit_job.reset_mock()
-        # pylint: disable=no-member
+        # pylint: disable=unnecessary-dunder-call
         utils.ingest_table.batch_writer().__enter__().put_item.reset_mock()
         submit_to_sds.dynamodb.batch_get_item.reset_mock()

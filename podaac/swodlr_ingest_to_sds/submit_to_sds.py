@@ -63,7 +63,10 @@ def lambda_handler(event, _context):
         for granule in granules.values():
             try:
                 job = _ingest_granule(granule)
-                jobs.append({'granule_id': granule['id'], 'job_id': job['job_id']})
+                jobs.append({
+                    'granule_id': granule['id'],
+                    'job_id': job['job_id']
+                })
 
                 batch.put_item(
                     Item={
@@ -74,7 +77,8 @@ def lambda_handler(event, _context):
                         'last_check': {'S': job['timestamp']}
                     }
                 )
-            except Exception:
+            # Otello throws generic Exceptions
+            except Exception:  # pylint: disable=broad-exception-caught
                 logging.exception('Failed to ingest granule')
 
     return {'jobs': jobs}
