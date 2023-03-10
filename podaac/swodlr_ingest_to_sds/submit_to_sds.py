@@ -5,6 +5,7 @@ import logging
 from pathlib import PurePath
 from urllib.parse import urlsplit, urlunsplit
 import boto3
+from podaac.swodlr_ingest_to_sds.errors import DataNotFoundError
 from podaac.swodlr_ingest_to_sds.utils import (
     mozart_client, get_param, ingest_table
 )
@@ -34,8 +35,11 @@ def lambda_handler(event, _context):
 
     granules = {}
     for record in event['Records']:
-        granule = _parse_record(record)
-        granules[granule['id']] = granule
+        try:
+            granule = _parse_record(record)
+            granules[granule['id']] = granule
+        except (DataNotFoundError, json.JSONDecodeError):
+            logging.exception('Failed to parse record')
 
     lookup_results = dynamodb.batch_get_item(
         RequestItems={
@@ -57,27 +61,31 @@ def lambda_handler(event, _context):
     jobs = []
     with ingest_table.batch_writer() as batch:
         for granule in granules.values():
-            job = _ingest_granule(granule)
-            jobs.append({'granule_id': granule['id'], 'job_id': job['job_id']})
+            try:
+                job = _ingest_granule(granule)
+                jobs.append({'granule_id': granule['id'], 'job_id': job['job_id']})
 
-            batch.put_item(
-                Item={
-                    'granule_id': {'S': granule['id']},
-                    's3_url': {'S': granule['s3_url']},
-                    'job_id': {'S': job['job_id']},
-                    'status': {'S': job['status']},
-                    'last_check': {'S': job['timestamp']}
-                }
-            )
+                batch.put_item(
+                    Item={
+                        'granule_id': {'S': granule['id']},
+                        's3_url': {'S': granule['s3_url']},
+                        'job_id': {'S': job['job_id']},
+                        'status': {'S': job['status']},
+                        'last_check': {'S': job['timestamp']}
+                    }
+                )
+            except Exception:
+                logging.exception('Failed to ingest granule')
+
 
     sqs.delete_message_batch(
         QueueUrl=INGEST_QUEUE_URL,
         Entries=[
             {
-                'Id': record['messageId'],
-                'ReceiptHandle': record['receiptHandle']
+                'Id': granules[job['granule_id']]['messageId'],
+                'ReceiptHandle': granules[job['granule_id']]['receiptHandle']
             }
-            for record in event['Records']
+            for job in jobs
         ]
     )
 
@@ -92,7 +100,9 @@ def _parse_record(record):
     return {
         'id': identifier,
         'filename': filename,
-        's3_url': s3_url
+        's3_url': s3_url,
+        'messageId': record['messageId'],
+        'receiptHandle': record['receiptHandle']
     }
 
 
@@ -143,7 +153,7 @@ def _extract_s3_url(cnm_r_message):
 
         logging.debug('Rejected file: %s', file['name'])
 
-    raise RuntimeError('No data file found')
+    raise DataNotFoundError()
 
 
 def _gen_mozart_job_params(filename, url):
