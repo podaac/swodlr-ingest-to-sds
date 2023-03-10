@@ -32,9 +32,12 @@ class TestPollStatus(TestCase):
         updated in the database, and verifying that remaining jobs are
         returned in the event.
         '''
-        _statuses = ['job-completed', 'job-started']
+        _statuses = [
+            {'status': 'job-completed'},
+            {'status': 'job-started'}
+        ]
 
-        def _mock_get_status():
+        def _mock_get_info():
             nonlocal _statuses
             return _statuses.pop()
 
@@ -42,7 +45,7 @@ class TestPollStatus(TestCase):
         with (
             patch('otello.mozart.Mozart.get_job_by_id') as mock_get_job_by_id,
         ):
-            mock_get_job_by_id().get_status.side_effect = _mock_get_status
+            mock_get_job_by_id().get_info.side_effect = _mock_get_info
             event = poll_status.lambda_handler(self.poll_event, None)
 
         self.assertEqual(len(event['jobs']), 1)
