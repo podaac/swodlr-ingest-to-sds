@@ -77,18 +77,6 @@ def lambda_handler(event, _context):
             except Exception:
                 logging.exception('Failed to ingest granule')
 
-
-    sqs.delete_message_batch(
-        QueueUrl=INGEST_QUEUE_URL,
-        Entries=[
-            {
-                'Id': granules[job['granule_id']]['messageId'],
-                'ReceiptHandle': granules[job['granule_id']]['receiptHandle']
-            }
-            for job in jobs
-        ]
-    )
-
     return {'jobs': jobs}
 
 
