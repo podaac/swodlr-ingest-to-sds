@@ -66,7 +66,7 @@ jobs:
 
       #   -- Build --
       - name: Build lambda package
-        run: build.sh
+        run: ./build.sh
       - name: Upload packaged zip
         uses: actions/upload-artifact@v3.1.0
         with:
