@@ -26,7 +26,7 @@ jobs:
         with:
           repository: ${{ github.repository }}
           token: ${{ steps.podaac-cicd.outputs.token }}
-      - uses: actions/setup-python@4
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Install bumpver & poetry
