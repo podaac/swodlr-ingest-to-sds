@@ -27,14 +27,17 @@ variable "sds_pcm_release_tag" {
 
 variable "sds_host" {
     type = string
+    sensitive = true
 }
 
 variable "sds_username" {
     type = string
+    sensitive = true
 }
 
 variable "sds_password" {
     type = string
+    sensitive = true
 }
 
 variable "sds_ca_cert_path" {

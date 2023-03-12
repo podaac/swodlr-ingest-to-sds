@@ -3,7 +3,7 @@ set -eo pipefail
 
 if [ ! $# -eq 1 ]
 then
-    echo "$(caller | cut -d' ' -f2) venue"
+    echo "usage: $(caller | cut -d' ' -f2) venue"
     exit 1
 fi
 
