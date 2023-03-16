@@ -22,6 +22,9 @@ jobs:
         with:
           app_id: ${{ secrets.CICD_APP_ID }}
           private_key: ${{ secrets.CICD_APP_PRIVATE_KEY }}
+      - uses: hashicorp/setup-terraform@v2.0.3
+        with:
+          terraform_version: 1.3.7
       - uses: actions/checkout@v3
         with:
           repository: ${{ github.repository }}
@@ -73,7 +76,9 @@ jobs:
           name: dist
           path: dist/*.zip
 
-      #   -- Terraform Deployment --
+      #   -- Terraform --
+      - name: Validate Terraform
+        run: terraform validate -no-color
       - name: Deploy to SIT
         if: github.ref == 'refs/heads/develop'
         working-directory: terraform/
