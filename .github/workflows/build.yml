@@ -48,6 +48,8 @@ jobs:
           poetry run pylint podaac/ tests/
       - name: Test
         run: poetry run pytest
+      - name: Validate Terraform
+        run: terraform validate -no-color
 
       #   -- Version Bumping --
       - name: Bump alpha version
@@ -77,8 +79,6 @@ jobs:
           path: dist/*.zip
 
       #   -- Terraform --
-      - name: Validate Terraform
-        run: terraform validate -no-color
       - name: Deploy to SIT
         if: github.ref == 'refs/heads/develop'
         working-directory: terraform/
