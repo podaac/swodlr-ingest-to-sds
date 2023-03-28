@@ -5,6 +5,7 @@ from pathlib import Path
 import json
 from os import environ
 
+
 with (
     patch('boto3.client'),
     patch('boto3.resource'),
@@ -108,28 +109,21 @@ class TestSubmitToSds(TestCase):
             ReturnConsumedCapacity='NONE'
         )
 
-        # delete_message_batch call
-        submit_to_sds.sqs.delete_message_batch.assert_called_once_with(
-            QueueUrl='test_ingest_queue_url',
-            Entries=[
-                {'Id': 'MessageID_1', 'ReceiptHandle': 'ReceiptHandle_1'},
-                {'Id': 'MessageID_2', 'ReceiptHandle': 'ReceiptHandle_2'},
-                {'Id': 'MessageID_3', 'ReceiptHandle': 'ReceiptHandle_3'}
-            ]
-        )
-
-        # reset mocks
-        submit_to_sds.ingest_job_type.set_input_params.reset_mock()
-        submit_to_sds.ingest_job_type.submit_job.reset_mock()
-        # pylint: disable=no-member
-        utils.ingest_table.batch_writer().__enter__().put_item.reset_mock()
-        submit_to_sds.dynamodb.batch_get_item.reset_mock()
-        submit_to_sds.sqs.delete_message_batch.reset_mock()
-
     def test_invalid_submit(self):
         '''
         Test the lambda handler for the submit_to_sds module by submitting
         an invalid event, verifying that a RuntimeException is raised.
         '''
-        with self.assertRaises(RuntimeError):
-            submit_to_sds.lambda_handler(self.invalid_event, None)
+        event = submit_to_sds.lambda_handler(self.invalid_event, None)
+        self.assertEqual(len(event['jobs']), 0)
+
+    def tearDown(self):
+        '''
+        Reset mocks after each test run
+        '''
+
+        submit_to_sds.ingest_job_type.set_input_params.reset_mock()
+        submit_to_sds.ingest_job_type.submit_job.reset_mock()
+        # pylint: disable=unnecessary-dunder-call
+        utils.ingest_table.batch_writer().__enter__().put_item.reset_mock()
+        submit_to_sds.dynamodb.batch_get_item.reset_mock()

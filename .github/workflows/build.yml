@@ -1,0 +1,98 @@
+name: Build 'n Deploy
+
+on: 
+  push:
+    branches:
+      - '*'
+    tags-ignore:
+      - '*'
+    paths-ignore:
+      - 'pyproject.toml'
+      - 'bumpver.toml'
+
+jobs:
+  build:
+    name: build, lint, and test ingest-to-sds
+    runs-on: ubuntu-latest
+    steps:
+      #   -- Setup --
+      - uses: getsentry/action-github-app-token@v2
+        name: my-app-install token
+        id: podaac-cicd
+        with:
+          app_id: ${{ secrets.CICD_APP_ID }}
+          private_key: ${{ secrets.CICD_APP_PRIVATE_KEY }}
+      - uses: hashicorp/setup-terraform@v2.0.3
+        with:
+          terraform_version: 1.3.7
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository }}
+          token: ${{ steps.podaac-cicd.outputs.token }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Install bumpver & poetry
+        run: pip3 install bumpver poetry poetry-plugin-bundle
+      - name: Setup git user
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+      - name: Install dependencies
+        run: poetry install
+
+      #   -- Testing & Linting --
+      - name: Lint
+        run: |
+          poetry run flake8 podaac/ tests/
+          poetry run pylint podaac/ tests/
+      - name: Test
+        run: poetry run pytest
+      - name: Validate Terraform
+        run: terraform validate -no-color
+
+      #   -- Version Bumping --
+      - name: Bump alpha version
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          TAG=$(bumpver show -e | awk -F= '$1 == "TAG" {print $2};')
+          if [ $TAG == 'final' ]; then
+            # Bump patch version first then append tag
+            bumpver update --patch --tag alpha --tag-num
+          else
+            bumpver update --tag alpha --tag-num
+          fi
+      - name: Bump rc version
+        if: startsWith(github.ref, 'refs/heads/release/')
+        run: bumpver --tag rc --tag-num
+      - name: Release version
+        if: github.ref == 'refs/heads/main'
+        run: bumpver --tag final
+
+      #   -- Build --
+      - name: Build lambda package
+        run: ./build.sh
+      - name: Upload packaged zip
+        uses: actions/upload-artifact@v3.1.0
+        with:
+          name: dist
+          path: dist/*.zip
+
+      #   -- Terraform --
+      - name: Deploy to SIT
+        if: github.ref == 'refs/heads/develop'
+        working-directory: terraform/
+        env:
+          AWS_ACCESS_KEY_ID:       ${{ secrets.AWS_ACCESS_KEY_ID_SERVICES_SIT }}
+          AWS_SECRET_ACCESS_KEY:   ${{ secrets.AWS_SECRET_ACCESS_KEY_SERVICES_SIT }}
+          AWS_DEFAULT_REGION:      us-west-2
+
+          TF_VAR_sds_ca_cert_path: ${{ runner.temp }}/JPLICA.pem
+          TF_VAR_sds_host:         ${{ secrets.SDS_HOST }}
+          TF_VAR_sds_username:     ${{ secrets.SDS_USERNAME }}
+          TF_VAR_sds_password:     ${{ secrets.SDS_PASSWORD }}
+        run: |
+          echo "${{ secrets.JPLICA_CERT }}" >> ${{ runner.temp }}/JPLICA.pem
+ 
+          source bin/config.sh sit
+          terraform apply -auto-approve
