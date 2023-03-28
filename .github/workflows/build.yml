@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       #   -- Setup --
-      - uses: getsentry/action-github-app-token@v1
+      - uses: getsentry/action-github-app-token@v2
         name: my-app-install token
         id: podaac-cicd
         with:
