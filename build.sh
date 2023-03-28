@@ -7,6 +7,7 @@ VERSION=$(poetry version -s)
 ROOT_PATH="$PWD"
 ZIP_PATH="$ROOT_PATH/dist/$PACKAGE_NAME-$VERSION.zip"
 
+# Install the bundle plugin using `poetry self add poetry-plugin-bundle`
 poetry bundle venv build --clear --without=dev
 
 cd build/lib/python3.*/site-packages
