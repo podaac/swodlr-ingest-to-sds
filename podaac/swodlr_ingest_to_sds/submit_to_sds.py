@@ -157,9 +157,8 @@ def _gen_mozart_job_params(filename, url):
             'restaged': False,
             'ISL_urls': url
         },
-        'create_hash': 'true',  # Why is this a string?
-        'hash_type': 'md5',
-        'update_s3_tag': False
+        'create_hash': 'false',   # Why is this a string?
+        'update_s3_tag': 'false'  # Why is this a string?
     }
 
     return params
