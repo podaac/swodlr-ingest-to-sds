@@ -71,8 +71,8 @@ resource "aws_iam_role" "sfn" {
         Action = "lambda:InvokeFunction"
         Effect   = "Allow"
         Resource = [
-          "arn:aws:ssm:${var.region}:${local.account_id}:function:${aws_lambda_function.submit_to_sds.function_name}",
-          "arn:aws:ssm:${var.region}:${local.account_id}:function:${aws_lambda_function.poll_status.function_name}",
+          aws_lambda_function.submit_to_sds.arn,
+          aws_lambda_function.poll_status.arn
         ]
       }]
     })
