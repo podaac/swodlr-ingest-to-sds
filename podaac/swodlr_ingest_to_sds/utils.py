@@ -2,7 +2,7 @@
 import sys
 from typing import Callable
 from os import getenv
-from tempfile import mkstemp
+from tempfile import NamedTemporaryFile
 import boto3
 from mypy_boto3_dynamodb.service_resource import Table
 from otello.mozart import Mozart
@@ -12,7 +12,7 @@ from requests import Session
 class Utils:
     '''Utility functions implemented as a singleton'''
     APP_NAME = 'swodlr'
-    SSM_PATH = f'/service/{APP_NAME}/ingest/'
+    SSM_PATH = f'/service/{APP_NAME}/ingest-to-sds/'
 
     def __init__(self):
         self.env = getenv('SWODLR_ENV', 'prod')
@@ -20,20 +20,21 @@ class Utils:
         if self.env == 'prod':
             self._load_params_from_ssm()
         else:
-            from dotenv import load_dotenv
+            from dotenv import load_dotenv  # noqa: E501 # pylint: disable=import-outside-toplevel
             load_dotenv()
 
     def _load_params_from_ssm(self):
         ssm = boto3.client('ssm')
         parameters = ssm.get_parameters_by_path(
-            path=Utils.SSM_PATH,
-            with_decryption=True
+            Path=Utils.SSM_PATH,
+            WithDecryption=True
         )['Parameters']
 
         self._ssm_parameters = {}
 
         for param in parameters:
-            self._ssm_parameters[param['Name']] = param['Value']
+            name = param['Name'].removeprefix(self.SSM_PATH)
+            self._ssm_parameters[name] = param['Value']
 
     def get_param(self, name):
         '''
@@ -60,10 +61,11 @@ class Utils:
             session.auth = (username, password)
 
             if ca_cert is not None:
-                cert_file, cert_path = mkstemp(text=True)
+                # pylint: disable=consider-using-with
+                cert_file = NamedTemporaryFile('w', delete=False)
                 cert_file.write(ca_cert)
                 cert_file.flush()
-                session.verify = cert_path
+                session.verify = cert_file.name
 
             cfg = {
                 'host': host,

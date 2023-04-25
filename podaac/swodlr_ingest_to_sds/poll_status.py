@@ -28,23 +28,27 @@ def lambda_handler(event, _context):
                           granule_id, job_id, status)
 
             update_expression = (
-                'SET status = :status'
-                ',last_check = :last_check'
+                'SET #status = :status'
+                ',#last_check = :last_check'
             )
+            expression_attribute_names = {
+                '#status': 'status',
+                '#last_check': 'last_check'
+            }
             expression_attribute_values = {
-                ':status': {'S': status},
-                ':last_check': {'S': timestamp}
+                ':status': status,
+                ':last_check': timestamp
             }
 
             if 'traceback' in info:
-                update_expression += ',traceback = :traceback'
-                expression_attribute_values[':traceback'] = {
-                    'S': info['traceback']
-                }
+                update_expression += ',#traceback = :traceback'
+                expression_attribute_names['#traceback'] = 'traceback'
+                expression_attribute_values[':traceback'] = info['traceback']
 
             ingest_table.update_item(
-                Key={'granule_id': {'S': granule_id}},
+                Key={'granule_id': granule_id},
                 UpdateExpression=update_expression,
+                ExpressionAttributeNames=expression_attribute_names,
                 ExpressionAttributeValues=expression_attribute_values
             )
 

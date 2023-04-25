@@ -45,10 +45,10 @@ def lambda_handler(event, _context):
         RequestItems={
             INGEST_TABLE_NAME: {
                 'Keys': [{'granule_id': {'S': granule['id']}}
-                         for granule in granules.values()]
+                         for granule in granules.values()],
+                'ProjectionExpression': 'granule_id'
             }
         },
-        ProjectionExpression='granule_id',
         ReturnConsumedCapacity='NONE'
     )
 
@@ -70,11 +70,11 @@ def lambda_handler(event, _context):
 
                 batch.put_item(
                     Item={
-                        'granule_id': {'S': granule['id']},
-                        's3_url': {'S': granule['s3_url']},
-                        'job_id': {'S': job['job_id']},
-                        'status': {'S': job['status']},
-                        'last_check': {'S': job['timestamp']}
+                        'granule_id': granule['id'],
+                        's3_url': granule['s3_url'],
+                        'job_id':  job['job_id'],
+                        'status': job['status'],
+                        'last_check': job['timestamp']
                     }
                 )
             # Otello throws generic Exceptions
