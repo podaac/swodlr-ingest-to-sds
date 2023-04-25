@@ -82,11 +82,11 @@ class TestSubmitToSds(TestCase):
         _valid_urls = valid_urls.copy()
         for call in put_item_calls:
             self.assertIn(call.kwargs['Item']
-                          ['granule_id']['S'], _valid_granule_ids)
-            self.assertIn(call.kwargs['Item']['s3_url']['S'], _valid_urls)
+                          ['granule_id'], _valid_granule_ids)
+            self.assertIn(call.kwargs['Item']['s3_url'], _valid_urls)
 
-            _valid_granule_ids.remove(call.kwargs['Item']['granule_id']['S'])
-            _valid_urls.remove(call.kwargs['Item']['s3_url']['S'])
+            _valid_granule_ids.remove(call.kwargs['Item']['granule_id'])
+            _valid_urls.remove(call.kwargs['Item']['s3_url'])
 
         # submit_job calls
         _valid_tags = valid_tags.copy()
@@ -102,10 +102,10 @@ class TestSubmitToSds(TestCase):
                         {'granule_id': {'S': 'test-1'}},
                         {'granule_id': {'S': 'test-2'}},
                         {'granule_id': {'S': 'test-3'}},
-                    ]
+                    ],
+                    'ProjectionExpression': 'granule_id'
                 }
             },
-            ProjectionExpression='granule_id',
             ReturnConsumedCapacity='NONE'
         )
 

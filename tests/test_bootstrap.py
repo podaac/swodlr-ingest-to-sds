@@ -37,6 +37,6 @@ class TestBootstrap(TestCase):
         ):
             bootstrap.lambda_handler(event, None)
             mock_exec.assert_called_once_with(
-                arn=TEST_ARN,
+                stateMachineArn=TEST_ARN,
                 input='{"a":42,"b":true,"c":"ipsum lorem"}'
             )
