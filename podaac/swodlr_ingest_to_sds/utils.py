@@ -4,13 +4,9 @@ from typing import Callable
 from os import getenv
 from tempfile import mkstemp
 import boto3
-from dotenv import load_dotenv
 from mypy_boto3_dynamodb.service_resource import Table
 from otello.mozart import Mozart
 from requests import Session
-
-
-load_dotenv()
 
 
 class Utils:
@@ -23,6 +19,9 @@ class Utils:
 
         if self.env == 'prod':
             self._load_params_from_ssm()
+        else:
+            from dotenv import load_dotenv
+            load_dotenv()
 
     def _load_params_from_ssm(self):
         ssm = boto3.client('ssm')
