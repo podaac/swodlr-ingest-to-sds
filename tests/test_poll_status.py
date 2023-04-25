@@ -64,8 +64,8 @@ class TestPollStatus(TestCase):
         self.assertEqual(len(update_item_calls), 2)
         for call in update_item_calls:
             kwargs = call.kwargs
-            key = kwargs['Key']['granule_id']['S']
-            status = kwargs['ExpressionAttributeValues'][':status']['S']
+            key = kwargs['Key']['granule_id']
+            status = kwargs['ExpressionAttributeValues'][':status']
 
             self.assertEqual(status, valid_statuses[key])
             del valid_statuses[key]
