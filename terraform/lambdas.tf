@@ -19,6 +19,11 @@ resource "aws_lambda_function" "submit_to_sds" {
 
   filename = "${path.module}/../dist/${local.name}-${local.version}.zip"
   source_code_hash = filebase64sha256("${path.module}/../dist/${local.name}-${local.version}.zip")
+
+  vpc_config {
+    security_group_ids = [aws_security_group.default.id]
+    subnet_ids = data.aws_subnets.private.ids
+  }
 }
 
 resource "aws_lambda_function" "poll_status" {
@@ -30,6 +35,11 @@ resource "aws_lambda_function" "poll_status" {
 
   filename = "${path.module}/../dist/${local.name}-${local.version}.zip"
   source_code_hash = filebase64sha256("${path.module}/../dist/${local.name}-${local.version}.zip")
+
+  vpc_config {
+    security_group_ids = [aws_security_group.default.id]
+    subnet_ids = data.aws_subnets.private.ids
+  }
 }
 
 # -- IAM --
@@ -48,6 +58,26 @@ resource "aws_iam_policy" "ssm_parameters_read" {
       ]
       Effect   = "Allow"
       Resource = "arn:aws:ssm:${var.region}:${local.account_id}:parameter${local.service_path}/*"
+    }]
+  })
+}
+
+resource "aws_iam_policy" "lambda_networking" {
+  name = "LambdaNetworkAccess"
+  path = "${local.service_path}/"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = [
+        "ec2:DescribeInstances",
+        "ec2:CreateNetworkInterface",
+        "ec2:AttachNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DeleteNetworkInterface"
+      ]
+      Effect   = "Allow"
+      Resource = "*"
     }]
   })
 }
@@ -107,7 +137,8 @@ resource "aws_iam_role" "lambda" {
   permissions_boundary = "arn:aws:iam::${local.account_id}:policy/NGAPShRoleBoundary"
   managed_policy_arns = [
     "arn:aws:iam::${local.account_id}:policy/NGAPProtAppInstanceMinimalPolicy",
-    aws_iam_policy.ssm_parameters_read.arn
+    aws_iam_policy.ssm_parameters_read.arn,
+    aws_iam_policy.lambda_networking.arn
   ]
 
   assume_role_policy = jsonencode({
@@ -136,7 +167,7 @@ resource "aws_iam_role" "lambda" {
             "dynamodb:UpdateItem"
           ]
           Effect   = "Allow"
-          Resource = "arn:aws:ssm:${var.region}:${local.account_id}:table/${data.aws_dynamodb_table.ingest.name}"
+          Resource = data.aws_dynamodb_table.ingest.arn
         }
       ]
     })
