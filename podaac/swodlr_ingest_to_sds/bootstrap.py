@@ -12,5 +12,8 @@ def lambda_handler(event, _context):
     '''Starts step function execution'''
 
     sf_input = json.dumps(event, separators=(',', ':'))
-    result = stepfunctions.start_execution(arn=ingest_sf_arn, input=sf_input)
+    result = stepfunctions.start_execution(
+        stateMachineArn=ingest_sf_arn,
+        input=sf_input
+    )
     logging.info('Started step function execution: %s', result['executionArn'])
