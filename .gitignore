@@ -160,6 +160,7 @@ cython_debug/
 # IDEs
 .idea/
 .vscode/
+pyrightconfig.json
 
 # Local .terraform directories
 **/.terraform/*
