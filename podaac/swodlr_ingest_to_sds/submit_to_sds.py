@@ -86,8 +86,8 @@ def lambda_handler(event, _context):
 
 def _parse_record(record):
     cmr_r_message = json.loads(record['body'])
-    identifier = cmr_r_message['identifier']
     filename, s3_url = _extract_s3_url(cmr_r_message)
+    identifier = filename.split('.', 1)[0]
 
     return {
         'id': identifier,
