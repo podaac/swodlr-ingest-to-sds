@@ -117,11 +117,10 @@ def _ingest_granule(granule):
     }
 
 
-def _extract_s3_url(cnm_r_message):
+def _extract_s3_url(cnm_r_message, strict=True):
     files = cnm_r_message['product']['files']
     for file in files:
-        ext = PurePath(file['name']).suffix[1:].lower()
-        if ext in ACCEPTED_EXTS:
+        if _accept_file(file, strict):
             url_elements = urlsplit(file['uri'])
             if url_elements.scheme == 's3':
                 # Accept s3 urls as-is
@@ -143,8 +142,18 @@ def _extract_s3_url(cnm_r_message):
 
         logging.debug('Rejected file: %s', file['name'])
 
+    if strict:
+        # Rerun without strict mode
+        return _extract_s3_url(cnm_r_message, False)
+
     raise DataNotFoundError()
 
+def _accept_file(file, strict):
+    if strict:
+        ext = PurePath(file['name']).suffix[1:].lower()
+        return ext in ACCEPTED_EXTS
+    else:
+        return file['type'] == 'data'
 
 def _gen_mozart_job_params(filename, url):
     params = {
