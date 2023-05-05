@@ -41,7 +41,8 @@ def _gen_cnm_r(s3_url):
         'product': {
             'files': [{
                 'name': filename,
-                'uri': s3_url
+                'uri': s3_url,
+                'type': 'data'
             }]
         }
     }
