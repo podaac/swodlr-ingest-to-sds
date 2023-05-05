@@ -148,12 +148,14 @@ def _extract_s3_url(cnm_r_message, strict=True):
 
     raise DataNotFoundError()
 
+
 def _accept_file(file, strict):
     if strict:
         ext = PurePath(file['name']).suffix[1:].lower()
         return ext in ACCEPTED_EXTS
-    else:
-        return file['type'] == 'data'
+
+    return file['type'] == 'data'
+
 
 def _gen_mozart_job_params(filename, url):
     params = {
