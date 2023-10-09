@@ -168,6 +168,16 @@ resource "aws_iam_role" "lambda" {
           ]
           Effect   = "Allow"
           Resource = data.aws_dynamodb_table.ingest.arn
+        },
+        {
+          Sid = ""
+          Action = [
+            "dynamodb:BatchWriteItem",
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem"
+          ]
+          Effect   = "Allow"
+          Resource = data.aws_dynamodb_table.avalible_tiles.arn
         }
       ]
     })
@@ -178,55 +188,53 @@ resource "aws_iam_role" "lambda" {
 resource "aws_ssm_parameter" "sds_pcm_release_tag" {
   name  = "${local.service_path}/sds_pcm_release_tag"
   type  = "String"
-  overwrite = true
   value = var.sds_pcm_release_tag
 }
 
 resource "aws_ssm_parameter" "sds_host" {
   name  = "${local.service_path}/sds_host"
   type  = "String"
-  overwrite = true
   value = var.sds_host
 }
 
 resource "aws_ssm_parameter" "sds_username" {
   name  = "${local.service_path}/sds_username"
   type  = "String"
-  overwrite = true
   value = var.sds_username
 }
 
 resource "aws_ssm_parameter" "sds_password" {
   name  = "${local.service_path}/sds_password"
   type  = "SecureString"
-  overwrite = true
   value = var.sds_password
 }
 
 resource "aws_ssm_parameter" "sds_ca_cert" {
   name = "${local.service_path}/sds_ca_cert"
   type = "SecureString"
-  overwrite = true
   value = local.sds_ca_cert
 }
 
 resource "aws_ssm_parameter" "stepfunction_arn" {
   name  = "${local.service_path}/stepfunction_arn"
   type  = "String"
-  overwrite = true
   value = aws_sfn_state_machine.ingest_to_sds.arn
 }
 
 resource "aws_ssm_parameter" "ingest_queue_url" {
   name  = "${local.service_path}/ingest_queue_url"
   type  = "String"
-  overwrite = true
   value = data.aws_sqs_queue.ingest.id
 }
 
 resource "aws_ssm_parameter" "ingest_table_name" {
   name  = "${local.service_path}/ingest_table_name"
   type  = "String"
-  overwrite = true
   value = data.aws_dynamodb_table.ingest.name
+}
+
+resource "aws_ssm_parameter" "available_tiles_table_name" {
+  name  = "${local.service_path}/available_tiles_table_name"
+  type  = "String"
+  value = data.aws_dynamodb_table.avalible_tiles.name
 }

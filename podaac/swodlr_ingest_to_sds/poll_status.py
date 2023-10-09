@@ -2,10 +2,17 @@
 from datetime import datetime
 from copy import deepcopy
 import logging
-from podaac.swodlr_ingest_to_sds.utils import mozart_client, ingest_table
+import re
+from podaac.swodlr_ingest_to_sds.utils import (
+    mozart_client, ingest_table, available_tiles_table
+)
+
 
 SUCCESS_STATUSES = {'job-completed'}
 FAIL_STATUSES = {'job-failed', 'job-offline', 'job-deduped'}
+PRODUCT_REGEX = re.compile(
+    r'_(?P<product>PIXC(Vec)?)_(?P<cycle>\d{3})_(?P<pass>\d{3})_(?P<tile>\d{3}(R|L))_'  # noqa: E501
+)
 
 
 def lambda_handler(event, _context):
@@ -62,9 +69,31 @@ def lambda_handler(event, _context):
                 new_event['jobs'].remove(item)
             elif status in SUCCESS_STATUSES:
                 logging.info('Job id: %s; status: %s', job_id, status)
-                new_event['jobs'].remove(item)
+
+                # Insert into available tiles table
+                cpt = _extract_cpt(granule_id)
+                if cpt is not None:
+                    tile_id = f'{cpt["product"]},{cpt["cycle"]},{cpt["pass"]},{cpt["tile"]}'  # pylint: disable=line-too-long # noqa: E501
+                    available_tiles_table.put_item(
+                        Item={'tile_id': tile_id}
+                    )
+
+                new_event['jobs'].remove(item)  # Remove from queue
         # Otello raises very generic exceptions
         except Exception:  # pylint: disable=broad-except
             logging.exception('Failed to get status: %s', job_id)
 
     return new_event
+
+
+def _extract_cpt(granule_id):
+    parsed_id = PRODUCT_REGEX.match(granule_id)
+    if parsed_id is None:
+        return None
+
+    return {
+        'product': parsed_id.group('product'),
+        'cycle': int(parsed_id.group('cycle')),
+        'pass': int(parsed_id.group('pass')),
+        'tile': int(parsed_id.group('tile'))
+    }

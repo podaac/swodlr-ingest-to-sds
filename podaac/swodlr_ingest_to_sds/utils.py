@@ -93,9 +93,24 @@ class Utils:
 
         return self._ingest_table
 
+    @property
+    def available_tiles_table(self):
+        '''
+        Lazily creates a DynamoDB table resource
+        '''
+        if not hasattr(self, '_available_tiles_table'):
+            dynamodb = boto3.resource('dynamodb')
+            # pylint: disable=attribute-defined-outside-init
+            self._available_tiles_table = dynamodb.Table(
+                self.get_param('available_tiles_table_name')
+            )
+
+        return self._available_tiles_table
+
 
 # Silence the linters
 ingest_table: Table
+available_tiles_table: Table
 mozart_client: Mozart
 get_param: Callable[[str], str]
 
