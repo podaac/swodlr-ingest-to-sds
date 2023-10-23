@@ -11,7 +11,7 @@ from podaac.swodlr_ingest_to_sds.utils import (
 SUCCESS_STATUSES = {'job-completed'}
 FAIL_STATUSES = {'job-failed', 'job-offline', 'job-deduped'}
 PRODUCT_REGEX = re.compile(
-    r'_(?P<product>PIXC(Vec)?)_(?P<cycle>\d{3})_(?P<pass>\d{3})_(?P<tile>\d{3})(?P<direction>(R|L))_'  # noqa: E501
+    r'_(?P<product>PIXC(Vec)?)_(?P<cycle>\d{3})_(?P<pass>\d{3})_(?P<tile>\d{3})(?P<direction>(R|L))_'  # pylint: disable=line-too-long # noqa: E501
 )
 
 
