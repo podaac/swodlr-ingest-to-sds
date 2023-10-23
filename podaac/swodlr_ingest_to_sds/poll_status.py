@@ -11,7 +11,7 @@ from podaac.swodlr_ingest_to_sds.utils import (
 SUCCESS_STATUSES = {'job-completed'}
 FAIL_STATUSES = {'job-failed', 'job-offline', 'job-deduped'}
 PRODUCT_REGEX = re.compile(
-    r'_(?P<product>PIXC(Vec)?)_(?P<cycle>\d{3})_(?P<pass>\d{3})_(?P<tile>\d{3}(R|L))_'  # noqa: E501
+    r'_(?P<product>PIXC(Vec)?)_(?P<cycle>\d{3})_(?P<pass>\d{3})_(?P<tile>\d{3})(?P<direction>(R|L))_'  # noqa: E501
 )
 
 
@@ -75,7 +75,7 @@ def lambda_handler(event, _context):
                 if cpt is not None:
                     tile_id = f'{cpt["product"]},{cpt["cycle"]},{cpt["pass"]},{cpt["tile"]}'  # pylint: disable=line-too-long # noqa: E501
                     available_tiles_table.put_item(
-                        Item={'tile_id': tile_id}
+                        Item={'tile_id': {'S': tile_id}}
                     )
 
                 new_event['jobs'].remove(item)  # Remove from queue
@@ -95,5 +95,5 @@ def _extract_cpt(granule_id):
         'product': parsed_id.group('product'),
         'cycle': int(parsed_id.group('cycle')),
         'pass': int(parsed_id.group('pass')),
-        'tile': int(parsed_id.group('tile'))
+        'tile': int(parsed_id.group('tile')) + parsed_id.group('direction')
     }
