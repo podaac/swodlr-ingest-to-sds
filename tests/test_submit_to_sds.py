@@ -1,6 +1,7 @@
 '''Tests for the submit_to_sds module'''
 from unittest import TestCase
 from unittest.mock import patch
+import importlib
 from pathlib import Path
 import json
 from os import environ
@@ -8,18 +9,17 @@ from os import environ
 
 with (
     patch('boto3.client'),
-    patch('boto3.resource'),
     patch('otello.mozart.Mozart.get_job_type'),
     patch.dict(environ, {
         'SWODLR_ENV': 'dev',
         'SWODLR_sds_username': 'test_username',
         'SWODLR_sds_password': 'test_password',
         'SWODLR_ingest_table_name': 'test_ingest_table_name',
-        'SWODLR_ingest_queue_url': 'test_ingest_queue_url'
+        'SWODLR_ingest_queue_url': 'test_ingest_queue_url',
+        'SWODLR_available_tiles_table': 'test_available_tiles_table'
     })
 ):
-    from podaac.swodlr_ingest_to_sds import submit_to_sds, utils
-
+    from podaac.swodlr_ingest_to_sds import submit_to_sds
 
 class TestSubmitToSds(TestCase):
     '''Tests for the submit_to_sds module'''
@@ -32,7 +32,8 @@ class TestSubmitToSds(TestCase):
     with open(invalid_event_path, encoding='utf-8') as f:
         invalid_event = json.load(f)
 
-    def test_valid_submit(self):
+    @patch('boto3.resource')
+    def test_valid_submit(self, _):
         '''
         Test the lambda handler for the submit_to_sds module by submitting
         three jobs, verifying all jobs are submitted, and verifying that
@@ -45,7 +46,7 @@ class TestSubmitToSds(TestCase):
         input_calls = submit_to_sds.ingest_job_type.set_input_params\
             .call_args_list
         # pylint: disable=no-member,unnecessary-dunder-call
-        put_item_calls = utils.ingest_table.batch_writer().__enter__()\
+        put_item_calls = submit_to_sds.utils.ingest_table.batch_writer().__enter__()\
             .put_item.call_args_list
 
         self.assertEqual(len(input_calls), 3)
@@ -103,7 +104,8 @@ class TestSubmitToSds(TestCase):
                         {'granule_id': {'S': 'test-2'}},
                         {'granule_id': {'S': 'test-3'}},
                     ],
-                    'ProjectionExpression': 'granule_id'
+                    'ProjectionExpression': 'granule_id, #status',
+                    'ExpressionAttributeNames': {'#status': 'status'}
                 }
             },
             ReturnConsumedCapacity='NONE'
@@ -124,6 +126,4 @@ class TestSubmitToSds(TestCase):
 
         submit_to_sds.ingest_job_type.set_input_params.reset_mock()
         submit_to_sds.ingest_job_type.submit_job.reset_mock()
-        # pylint: disable=unnecessary-dunder-call
-        utils.ingest_table.batch_writer().__enter__().put_item.reset_mock()
         submit_to_sds.dynamodb.batch_get_item.reset_mock()

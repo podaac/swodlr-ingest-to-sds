@@ -6,7 +6,6 @@ from unittest.mock import patch
 TEST_ARN = 'ABC123'
 
 with (
-    patch('boto3.client'),
     patch.dict(os.environ, {
         'SWODLR_ENV': 'dev',
         'SWODLR_stepfunction_arn': TEST_ARN

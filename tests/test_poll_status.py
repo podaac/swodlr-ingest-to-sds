@@ -4,11 +4,9 @@ from unittest.mock import patch
 from pathlib import Path
 import json
 from os import environ
-from podaac.swodlr_ingest_to_sds import utils
+from podaac.swodlr_ingest_to_sds.utilities import utils
 
 with (
-    patch('boto3.client'),
-    patch('boto3.resource'),
     patch.dict(environ, {
         'SWODLR_ENV': 'dev',
         'SWODLR_sds_username': 'AAAAAA',
@@ -25,7 +23,8 @@ class TestPollStatus(TestCase):
     with open(poll_event_path, encoding='utf-8') as f:
         poll_event = json.load(f)
 
-    def test_poll_status(self):
+    @patch('boto3.resource')
+    def test_poll_status(self, _):
         '''
         Test the lambda handler for the poll_status module by submitting two
         jobs, polling their status, verifying that the correct jobs are
