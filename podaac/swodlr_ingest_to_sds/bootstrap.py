@@ -1,12 +1,11 @@
 '''Lambda to bootstrap step function execution'''
 import json
-import logging
 import boto3
-from podaac.swodlr_ingest_to_sds.utils import get_param
+from podaac.swodlr_ingest_to_sds.utilities import utils
 
 stepfunctions = boto3.client('stepfunctions')
-ingest_sf_arn = get_param('stepfunction_arn')
-
+ingest_sf_arn = utils.get_param('stepfunction_arn')
+logger = utils.get_logger(__name__)
 
 def lambda_handler(event, _context):
     '''Starts step function execution'''
@@ -16,4 +15,4 @@ def lambda_handler(event, _context):
         stateMachineArn=ingest_sf_arn,
         input=sf_input
     )
-    logging.info('Started step function execution: %s', result['executionArn'])
+    logger.info('Started step function execution: %s', result['executionArn'])

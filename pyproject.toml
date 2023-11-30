@@ -13,6 +13,7 @@ packages = [
 python = "^3.9"
 otello = {git = "https://github.com/hysds/otello.git", branch = "develop"}
 boto3-stubs-lite = {extras = ["dynamodb"], version = "^1.26.81"}
+swodlr-common = {git = "https://github.com/podaac/swodlr-common-py.git", rev = "develop"}
 
 [tool.poetry.group.dev.dependencies]
 boto3 = "^1.26.59"

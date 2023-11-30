@@ -1,27 +1,25 @@
 '''Lambda to submit granules to the SDS for ingestion'''
 from datetime import datetime
 import json
-import logging
 from pathlib import PurePath
 from urllib.parse import urlsplit, urlunsplit
 import boto3
+from podaac.swodlr_common import sds_statuses
 from podaac.swodlr_ingest_to_sds.errors import DataNotFoundError
-from podaac.swodlr_ingest_to_sds.utils import (
-    mozart_client, get_param, ingest_table
-)
+from podaac.swodlr_ingest_to_sds.utilities import utils
 
 ACCEPTED_EXTS = ['nc']
-INGEST_QUEUE_URL = get_param('ingest_queue_url')
-INGEST_TABLE_NAME = get_param('ingest_table_name')
-PCM_RELEASE_TAG = get_param('sds_pcm_release_tag')
+INGEST_QUEUE_URL = utils.get_param('ingest_queue_url')
+INGEST_TABLE_NAME = utils.get_param('ingest_table_name')
+PCM_RELEASE_TAG = utils.get_param('sds_pcm_release_tag')
 
 dynamodb = boto3.client('dynamodb')
 sqs = boto3.client('sqs')
 
-ingest_job_type = mozart_client.get_job_type(
+logger = utils.get_logger(__name__)
+ingest_job_type = utils.mozart_client.get_job_type(
     f'job-INGEST_STAGED:{PCM_RELEASE_TAG}'
 )
-
 ingest_job_type.initialize()
 
 
@@ -31,7 +29,7 @@ def lambda_handler(event, _context):
     not already ingested and inserts the granule and job info into DynamoDB
     '''
 
-    logging.debug('Records received: %d', len(event['Records']))
+    logger.debug('Records received: %d', len(event['Records']))
 
     granules = {}
     for record in event['Records']:
@@ -39,14 +37,15 @@ def lambda_handler(event, _context):
             granule = _parse_record(record)
             granules[granule['id']] = granule
         except (DataNotFoundError, json.JSONDecodeError):
-            logging.exception('Failed to parse record')
+            logger.exception('Failed to parse record')
 
     lookup_results = dynamodb.batch_get_item(
         RequestItems={
             INGEST_TABLE_NAME: {
                 'Keys': [{'granule_id': {'S': granule['id']}}
                          for granule in granules.values()],
-                'ProjectionExpression': 'granule_id'
+                'ProjectionExpression': 'granule_id, #status',
+                'ExpressionAttributeNames': {'#status': 'status'}
             }
         },
         ReturnConsumedCapacity='NONE'
@@ -54,12 +53,13 @@ def lambda_handler(event, _context):
 
     for item in lookup_results['Responses'][INGEST_TABLE_NAME]:
         granule_id = item['granule_id']['S']
-        if granule_id in granules:
-            logging.info('Granule already ingested: %s', granule_id)
+        status = item['status']['S']
+        if granule_id in granules and status in sds_statuses.SUCCESS:
+            logger.info('Granule already ingested: %s', granule_id)
             del granules[granule_id]
 
     jobs = []
-    with ingest_table.batch_writer() as batch:
+    with utils.ingest_table.batch_writer() as batch:
         for granule in granules.values():
             try:
                 job = _ingest_granule(granule)
@@ -79,7 +79,7 @@ def lambda_handler(event, _context):
                 )
             # Otello throws generic Exceptions
             except Exception:  # pylint: disable=broad-exception-caught
-                logging.exception('Failed to ingest granule')
+                logger.exception('Failed to ingest granule')
 
     return {'jobs': jobs}
 
@@ -100,7 +100,7 @@ def _ingest_granule(granule):
     filename = granule['filename']
     s3_url = granule['s3_url']
 
-    logging.debug('Ingesting granule id: %s', granule['id'])
+    logger.debug('Ingesting granule id: %s', granule['id'])
 
     job_params = _gen_mozart_job_params(filename, s3_url)
     tag = f'ingest_file_otello__{filename}'
@@ -108,7 +108,7 @@ def _ingest_granule(granule):
     ingest_job_type.set_input_params(job_params)
     job = ingest_job_type.submit_job(tag=tag)
     timestamp = datetime.now().isoformat()
-    logging.info('Submitted to sds: %s', granule['id'])
+    logger.info('Submitted to sds: %s', granule['id'])
 
     return {
         'job_id': job.job_id,
@@ -136,11 +136,11 @@ def _extract_s3_url(cnm_r_message, strict=True):
             )
 
             s3_url = urlunsplit(s3_elements)
-            logging.debug("S3 url: %s", s3_elements)
+            logger.debug("S3 url: %s", s3_elements)
 
             return (file['name'], s3_url)
 
-        logging.debug('Rejected file: %s', file['name'])
+        logger.debug('Rejected file: %s', file['name'])
 
     if strict:
         # Rerun without strict mode
