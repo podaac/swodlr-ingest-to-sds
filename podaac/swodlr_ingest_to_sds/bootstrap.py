@@ -7,6 +7,7 @@ stepfunctions = boto3.client('stepfunctions')
 ingest_sf_arn = utils.get_param('stepfunction_arn')
 logger = utils.get_logger(__name__)
 
+
 def lambda_handler(event, _context):
     '''Starts step function execution'''
 

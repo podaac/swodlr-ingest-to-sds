@@ -30,7 +30,7 @@ def lambda_handler(event, _context):
             status = info['status']
             timestamp = datetime.now().isoformat()
             logger.debug('granule id: %s; job id: %s; status: %s',
-                          granule_id, job_id, status)
+                         granule_id, job_id, status)
 
             update_expression = (
                 'SET #status = :status'
@@ -98,5 +98,6 @@ def _extract_cpt(granule_id):
         'product': parsed_id.group('product'),
         'cycle': str(int(parsed_id.group('cycle'))),
         'pass': str(int(parsed_id.group('pass'))),
-        'tile': str(int(parsed_id.group('tile'))) + parsed_id.group('direction')
+        'tile': str(int(parsed_id.group('tile')))
+        + parsed_id.group('direction')
     }

@@ -1,7 +1,6 @@
 '''Tests for the submit_to_sds module'''
 from unittest import TestCase
 from unittest.mock import patch
-import importlib
 from pathlib import Path
 import json
 from os import environ
@@ -20,6 +19,7 @@ with (
     })
 ):
     from podaac.swodlr_ingest_to_sds import submit_to_sds
+
 
 class TestSubmitToSds(TestCase):
     '''Tests for the submit_to_sds module'''
@@ -42,12 +42,14 @@ class TestSubmitToSds(TestCase):
 
         submit_to_sds.lambda_handler(self.valid_event, None)
 
+        # pylint: disable=no-member
         submit_calls = submit_to_sds.ingest_job_type.submit_job.call_args_list
+        # pylint: disable=no-member
         input_calls = submit_to_sds.ingest_job_type.set_input_params\
             .call_args_list
         # pylint: disable=no-member,unnecessary-dunder-call
-        put_item_calls = submit_to_sds.utils.ingest_table.batch_writer().__enter__()\
-            .put_item.call_args_list
+        put_item_calls = submit_to_sds.utils.ingest_table.batch_writer()\
+            .__enter__().put_item.call_args_list
 
         self.assertEqual(len(input_calls), 3)
         self.assertEqual(len(submit_calls), 3)
@@ -124,6 +126,8 @@ class TestSubmitToSds(TestCase):
         Reset mocks after each test run
         '''
 
+        # pylint: disable=no-member
         submit_to_sds.ingest_job_type.set_input_params.reset_mock()
+        # pylint: disable=no-member
         submit_to_sds.ingest_job_type.submit_job.reset_mock()
         submit_to_sds.dynamodb.batch_get_item.reset_mock()
