@@ -6,6 +6,6 @@ data "aws_dynamodb_table" "ingest" {
   name = "${local.app_prefix}-ingest"
 }
 
-data "aws_dynamodb_table" "avalible_tiles" {
-  name = "${local.app_prefix}-avalible-tiles"
+data "aws_dynamodb_table" "available_tiles" {
+  name = "${local.app_prefix}-available-tiles"
 }

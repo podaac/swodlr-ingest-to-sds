@@ -177,7 +177,7 @@ resource "aws_iam_role" "lambda" {
             "dynamodb:UpdateItem"
           ]
           Effect   = "Allow"
-          Resource = data.aws_dynamodb_table.avalible_tiles.arn
+          Resource = data.aws_dynamodb_table.available_tiles.arn
         }
       ]
     })
@@ -236,5 +236,5 @@ resource "aws_ssm_parameter" "ingest_table_name" {
 resource "aws_ssm_parameter" "available_tiles_table_name" {
   name  = "${local.service_path}/available_tiles_table_name"
   type  = "String"
-  value = data.aws_dynamodb_table.avalible_tiles.name
+  value = data.aws_dynamodb_table.available_tiles.name
 }
