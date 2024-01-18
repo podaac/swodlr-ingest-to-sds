@@ -80,17 +80,22 @@ jobs:
           else
             bumpver update --tag alpha --tag-num
           fi
+          echo "TARGET_ENV=SIT" >> $GITHUB_ENV
       - name: Bump rc version
         if: startsWith(github.ref, 'refs/heads/release/')
-        run: bumpver --tag rc --tag-num
+        run: |
+          bumpver --tag rc --tag-num
+          echo "TARGET_ENV=UAT" >> $GITHUB_ENV
       - name: Release version
         if: github.ref == 'refs/heads/main'
-        run: bumpver --tag final
-
+        run: |
+          bumpver --tag final
       #   -- Build --
       - name: Build lambda package
         id: package-build
-        run: ./build.sh
+        run: |
+          ./build.sh
+          echo "deploy_env=${{ env.TARGET_ENV }}" >> $GITHUB_OUTPUT
       - name: Upload packaged zip
         uses: actions/upload-artifact@v3.1.0
         with:
