@@ -10,6 +10,16 @@ on:
       - 'pyproject.toml'
       - 'bumpver.toml'
 
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      venue:
+        type: choice
+        description: Venue to deploy to
+        options:
+          - SIT
+          - UAT
+
 jobs:
   build:
     name: build, lint, and test ingest-to-sds
