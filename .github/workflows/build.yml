@@ -24,6 +24,8 @@ jobs:
   build:
     name: build, lint, and test ingest-to-sds
     runs-on: ubuntu-latest
+    outputs:
+      deploy_env: ${{ steps.package-build.outputs.deploy_env }}
     steps:
       #   -- Setup --
       - uses: getsentry/action-github-app-token@v2
@@ -87,6 +89,7 @@ jobs:
 
       #   -- Build --
       - name: Build lambda package
+        id: package-build
         run: ./build.sh
       - name: Upload packaged zip
         uses: actions/upload-artifact@v3.1.0
