@@ -10,6 +10,16 @@ on:
       - 'pyproject.toml'
       - 'bumpver.toml'
 
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+    inputs:
+      venue:
+        type: choice
+        description: Venue to deploy to
+        options:
+          - SIT
+          - UAT
+
 jobs:
   build:
     name: build, lint, and test ingest-to-sds
@@ -51,7 +61,13 @@ jobs:
       - name: Validate Terraform
         run: terraform validate -no-color
 
-      #   -- Version Bumping --
+      - name: No version bump
+        # If triggered by workflow dispatch, no version bump
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "TARGET_ENV=${{ github.event.inputs.venue }}" >> $GITHUB_ENV
+  
+        #   -- Version Bumping --
       - name: Bump alpha version
         if: github.ref == 'refs/heads/develop'
         run: |
@@ -78,21 +94,73 @@ jobs:
           name: dist
           path: dist/*.zip
 
-      #   -- Terraform --
-      - name: Deploy to SIT
-        if: github.ref == 'refs/heads/develop'
+      # #   -- Terraform --
+      # - name: Deploy to SIT
+      #   if: github.ref == 'refs/heads/develop'
+      #   working-directory: terraform/
+      #   env:
+      #     AWS_ACCESS_KEY_ID:       ${{ secrets.AWS_ACCESS_KEY_ID_SERVICES_SIT }}
+      #     AWS_SECRET_ACCESS_KEY:   ${{ secrets.AWS_SECRET_ACCESS_KEY_SERVICES_SIT }}
+      #     AWS_DEFAULT_REGION:      us-west-2
+
+      #     TF_VAR_sds_ca_cert_path: ${{ runner.temp }}/JPLICA.pem
+      #     TF_VAR_sds_host:         ${{ secrets.SDS_HOST }}
+      #     TF_VAR_sds_username:     ${{ secrets.SDS_USERNAME }}
+      #     TF_VAR_sds_password:     ${{ secrets.SDS_PASSWORD }}
+      #   run: |
+      #     echo "${{ secrets.JPLICA_CERT }}" >> ${{ runner.temp }}/JPLICA.pem
+ 
+      #     source bin/config.sh sit
+      #     terraform apply -auto-approve
+
+
+
+  deploy:
+    name: Deploy
+    needs: build
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ needs.build.outputs.deploy_env }}
+    if: |
+      github.ref == 'refs/heads/develop' ||
+      github.ref == 'refs/heads/main'    ||
+      startsWith(github.ref, 'refs/heads/release') ||
+      github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-west-2
+          role-session-name: GitHubActions
+          aws-access-key-id: ${{ secrets[vars.AWS_ACCESS_KEY_ID_SECRET_NAME] }}
+          aws-secret-access-key: ${{ secrets[vars.AWS_SECRET_ACCESS_KEY_SECRET_NAME] }}
+          mask-aws-account-id: true
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository }}
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: Retrieve artifact from build step
+        uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist/
+      - name: Deploy to venue
+        id: terraform-deploy
         working-directory: terraform/
         env:
-          AWS_ACCESS_KEY_ID:       ${{ secrets.AWS_ACCESS_KEY_ID_SERVICES_SIT }}
-          AWS_SECRET_ACCESS_KEY:   ${{ secrets.AWS_SECRET_ACCESS_KEY_SERVICES_SIT }}
-          AWS_DEFAULT_REGION:      us-west-2
-
-          TF_VAR_sds_ca_cert_path: ${{ runner.temp }}/JPLICA.pem
-          TF_VAR_sds_host:         ${{ secrets.SDS_HOST }}
-          TF_VAR_sds_username:     ${{ secrets.SDS_USERNAME }}
-          TF_VAR_sds_password:     ${{ secrets.SDS_PASSWORD }}
+          AWS_DEFAULT_REGION: us-west-2
+          TF_VAR_edl_base_url: ${{ secrets.EDL_BASE_URL }}
+          TF_VAR_edl_client_id: ${{ secrets.EDL_CLIENT_ID }}
+          TF_VAR_edl_client_secret: ${{ secrets.EDL_CLIENT_SECRET }}
+          TF_VAR_session_encryption_key: ${{ secrets.SESSION_ENCRYPTION_KEY }}
+          TF_VAR_ingest_aws_account: ${{ secrets.INGEST_AWS_ACCOUNT }}
+          TF_VAR_ingest_aws_role: ${{ secrets.INGEST_AWS_ROLE }}
         run: |
           echo "${{ secrets.JPLICA_CERT }}" >> ${{ runner.temp }}/JPLICA.pem
- 
-          source bin/config.sh sit
-          terraform apply -auto-approve
+
+          source bin/config.sh ${{ vars.TF_VENUE }}
+          terraform apply -auto-approve          
