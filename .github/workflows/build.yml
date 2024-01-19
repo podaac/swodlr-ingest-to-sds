@@ -63,15 +63,16 @@ jobs:
       - name: Validate Terraform
         run: terraform validate -no-color
 
-      - name: No version bump
+      #   -- Version Bumping --
+      - name: Manual execution means no version bump
         # If triggered by workflow dispatch, no version bump
         if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           echo "TARGET_ENV=${{ github.event.inputs.venue }}" >> $GITHUB_ENV
-  
-        #   -- Version Bumping --
+
+          TARGET_ENV=${{ github.event.inputs.venue }}
       - name: Bump alpha version
-        if: github.ref == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/develop' && github.event_name != 'workflow_dispatch'
         run: |
           TAG=$(bumpver show -e | awk -F= '$1 == "TAG" {print $2};')
           if [ $TAG == 'final' ]; then
@@ -82,12 +83,12 @@ jobs:
           fi
           echo "TARGET_ENV=SIT" >> $GITHUB_ENV
       - name: Bump rc version
-        if: startsWith(github.ref, 'refs/heads/release/')
+        if: startsWith(github.ref, 'refs/heads/release/') && github.event_name != 'workflow_dispatch'
         run: |
           bumpver --tag rc --tag-num
           echo "TARGET_ENV=UAT" >> $GITHUB_ENV
       - name: Release version
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'workflow_dispatch'
         run: |
           bumpver --tag final
       #   -- Build --
