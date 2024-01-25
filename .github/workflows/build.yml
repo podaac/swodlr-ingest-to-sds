@@ -168,6 +168,11 @@ jobs:
           TF_VAR_session_encryption_key: ${{ secrets.SESSION_ENCRYPTION_KEY }}
           TF_VAR_ingest_aws_account: ${{ secrets.INGEST_AWS_ACCOUNT }}
           TF_VAR_ingest_aws_role: ${{ secrets.INGEST_AWS_ROLE }}
+          ## Original deployment values
+          TF_VAR_sds_ca_cert_path: ${{ runner.temp }}/JPLICA.pem
+          TF_VAR_sds_host:         ${{ secrets.SDS_HOST }}
+          TF_VAR_sds_username:     ${{ secrets.SDS_USERNAME }}
+          TF_VAR_sds_password:     ${{ secrets.SDS_PASSWORD }}
         run: |
           echo "${{ secrets.JPLICA_CERT }}" >> ${{ runner.temp }}/JPLICA.pem
 
