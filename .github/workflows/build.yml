@@ -24,6 +24,9 @@ jobs:
   build:
     name: build, lint, and test ingest-to-sds
     runs-on: ubuntu-latest
+    outputs:
+      deploy_env: ${{ steps.set-env.outputs.deploy_env }}
+      github_sha: ${{ steps.update-sha.outputs.github_sha }}
     steps:
       #   -- Setup --
       - uses: getsentry/action-github-app-token@v2
@@ -62,8 +65,15 @@ jobs:
         run: terraform validate -no-color
 
       #   -- Version Bumping --
+      - name: Manual execution means no version bump
+        # If triggered by workflow dispatch, no version bump
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "TARGET_ENV=${{ github.event.inputs.venue }}" >> $GITHUB_ENV
+
+          TARGET_ENV=${{ github.event.inputs.venue }}
       - name: Bump alpha version
-        if: github.ref == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/develop' && github.event_name != 'workflow_dispatch'
         run: |
           TAG=$(bumpver show -e | awk -F= '$1 == "TAG" {print $2};')
           if [ $TAG == 'final' ]; then
@@ -72,37 +82,85 @@ jobs:
           else
             bumpver update --tag alpha --tag-num
           fi
+          echo "TARGET_ENV=SIT" >> $GITHUB_ENV
       - name: Bump rc version
-        if: startsWith(github.ref, 'refs/heads/release/')
-        run: bumpver --tag rc --tag-num
+        if: startsWith(github.ref, 'refs/heads/release/') && github.event_name != 'workflow_dispatch'
+        run: |
+          bumpver --tag rc --tag-num
+          echo "TARGET_ENV=UAT" >> $GITHUB_ENV
       - name: Release version
-        if: github.ref == 'refs/heads/main'
-        run: bumpver --tag final
-
+        if: github.ref == 'refs/heads/main' && github.event_name != 'workflow_dispatch'
+        run: |
+          bumpver --tag final
+      - name: Set the target environment to ${{ env.TARGET_ENV }}
+        id: set-env
+        run: |
+          echo "deploy_env=${{ env.TARGET_ENV }}" >> $GITHUB_OUTPUT
       #   -- Build --
       - name: Build lambda package
-        run: ./build.sh
+        run: |
+          ./build.sh
       - name: Upload packaged zip
         uses: actions/upload-artifact@v3.1.0
         with:
           name: dist
           path: dist/*.zip
-
-      #   -- Terraform --
-      - name: Deploy to SIT
-        if: github.ref == 'refs/heads/develop'
+      - name: Set github SHA for deployment
+        id: update-sha
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "github_sha=${SHA}" >> $GITHUB_OUTPUT
+  
+  deploy:
+    name: Deploy
+    needs: build
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ needs.build.outputs.deploy_env }}
+    if: |
+      github.ref == 'refs/heads/develop' ||
+      github.ref == 'refs/heads/main'    ||
+      startsWith(github.ref, 'refs/heads/release') ||
+      github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-west-2
+          role-session-name: GitHubActions
+          aws-access-key-id: ${{ secrets[vars.AWS_ACCESS_KEY_ID_SECRET_NAME] }}
+          aws-secret-access-key: ${{ secrets[vars.AWS_SECRET_ACCESS_KEY_SECRET_NAME] }}
+          mask-aws-account-id: true
+      - uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ needs.build.outputs.github_sha }}
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: Retrieve artifact from build step
+        uses: actions/download-artifact@v3
+        with:
+          name: dist
+          path: dist/
+      - name: Deploy to venue
+        id: terraform-deploy
         working-directory: terraform/
         env:
-          AWS_ACCESS_KEY_ID:       ${{ secrets.AWS_ACCESS_KEY_ID_SERVICES_SIT }}
-          AWS_SECRET_ACCESS_KEY:   ${{ secrets.AWS_SECRET_ACCESS_KEY_SERVICES_SIT }}
-          AWS_DEFAULT_REGION:      us-west-2
-
+          AWS_DEFAULT_REGION: us-west-2
+          TF_VAR_edl_base_url: ${{ secrets.EDL_BASE_URL }}
+          TF_VAR_edl_client_id: ${{ secrets.EDL_CLIENT_ID }}
+          TF_VAR_edl_client_secret: ${{ secrets.EDL_CLIENT_SECRET }}
+          TF_VAR_session_encryption_key: ${{ secrets.SESSION_ENCRYPTION_KEY }}
+          TF_VAR_ingest_aws_account: ${{ secrets.INGEST_AWS_ACCOUNT }}
+          TF_VAR_ingest_aws_role: ${{ secrets.INGEST_AWS_ROLE }}
           TF_VAR_sds_ca_cert_path: ${{ runner.temp }}/JPLICA.pem
-          TF_VAR_sds_host:         ${{ secrets.SDS_HOST }}
-          TF_VAR_sds_username:     ${{ secrets.SDS_USERNAME }}
-          TF_VAR_sds_password:     ${{ secrets.SDS_PASSWORD }}
+          TF_VAR_sds_host: ${{ secrets.SDS_HOST }}
+          TF_VAR_sds_username: ${{ secrets.SDS_USERNAME }}
+          TF_VAR_sds_password: ${{ secrets.SDS_PASSWORD }}
         run: |
           echo "${{ secrets.JPLICA_CERT }}" >> ${{ runner.temp }}/JPLICA.pem
- 
-          source bin/config.sh sit
+          source bin/config.sh ${{ vars.TF_VENUE }}
           terraform apply -auto-approve
