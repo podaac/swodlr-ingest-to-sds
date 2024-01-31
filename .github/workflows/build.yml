@@ -25,7 +25,8 @@ jobs:
     name: build, lint, and test ingest-to-sds
     runs-on: ubuntu-latest
     outputs:
-      deploy_env: ${{ steps.package-build.outputs.deploy_env }}
+      deploy_env: ${{ steps.set-env.outputs.deploy_env }}
+      github_sha: ${{ steps.update-sha.outputs.github_sha }}
     steps:
       #   -- Setup --
       - uses: getsentry/action-github-app-token@v2
@@ -91,9 +92,12 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name != 'workflow_dispatch'
         run: |
           bumpver --tag final
+      - name: Set the target environment to ${{ env.TARGET_ENV }}
+        id: set-env
+        run: |
+          echo "deploy_env=${{ env.TARGET_ENV }}" >> $GITHUB_OUTPUT
       #   -- Build --
       - name: Build lambda package
-        id: package-build
         run: |
           ./build.sh
           echo "deploy_env=${{ env.TARGET_ENV }}" >> $GITHUB_OUTPUT
@@ -102,7 +106,12 @@ jobs:
         with:
           name: dist
           path: dist/*.zip
-
+      - name: Set github SHA for deployment
+        id: update-sha
+        run: |
+          SHA=$(git rev-parse HEAD)
+          echo "github_sha=${SHA}" >> $GITHUB_OUTPUT
+  
   deploy:
     name: Deploy
     needs: build
@@ -127,6 +136,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           repository: ${{ github.repository }}
+          ref: ${{ needs.build.outputs.github_sha }}
       - uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
@@ -147,13 +157,11 @@ jobs:
           TF_VAR_session_encryption_key: ${{ secrets.SESSION_ENCRYPTION_KEY }}
           TF_VAR_ingest_aws_account: ${{ secrets.INGEST_AWS_ACCOUNT }}
           TF_VAR_ingest_aws_role: ${{ secrets.INGEST_AWS_ROLE }}
-          ## Original deployment values
           TF_VAR_sds_ca_cert_path: ${{ runner.temp }}/JPLICA.pem
-          TF_VAR_sds_host:         ${{ secrets.SDS_HOST }}
-          TF_VAR_sds_username:     ${{ secrets.SDS_USERNAME }}
-          TF_VAR_sds_password:     ${{ secrets.SDS_PASSWORD }}
+          TF_VAR_sds_host: ${{ secrets.SDS_HOST }}
+          TF_VAR_sds_username: ${{ secrets.SDS_USERNAME }}
+          TF_VAR_sds_password: ${{ secrets.SDS_PASSWORD }}
         run: |
           echo "${{ secrets.JPLICA_CERT }}" >> ${{ runner.temp }}/JPLICA.pem
-
           source bin/config.sh ${{ vars.TF_VENUE }}
-          terraform apply -auto-approve          
+          terraform apply -auto-approve
