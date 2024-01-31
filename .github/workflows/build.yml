@@ -145,7 +145,7 @@ jobs:
         with:
           name: dist
           path: dist/
-      - name: Deploy to venue
+      - name: Deploy to ${{ needs.build.outputs.deploy_env }}
         id: terraform-deploy
         working-directory: terraform/
         env:
