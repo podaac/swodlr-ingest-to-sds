@@ -35,10 +35,10 @@ jobs:
         with:
           app_id: ${{ secrets.CICD_APP_ID }}
           private_key: ${{ secrets.CICD_APP_PRIVATE_KEY }}
-      - uses: hashicorp/setup-terraform@v2.0.3
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.3.7
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}
           token: ${{ steps.podaac-cicd.outputs.token }}
@@ -101,7 +101,7 @@ jobs:
         run: |
           ./build.sh
       - name: Upload packaged zip
-        uses: actions/upload-artifact@v3.1.0
+        uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/*.zip
@@ -132,16 +132,16 @@ jobs:
           aws-access-key-id: ${{ secrets[vars.AWS_ACCESS_KEY_ID_SECRET_NAME] }}
           aws-secret-access-key: ${{ secrets[vars.AWS_SECRET_ACCESS_KEY_SECRET_NAME] }}
           mask-aws-account-id: true
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           repository: ${{ github.repository }}
           ref: ${{ needs.build.outputs.github_sha }}
-      - uses: hashicorp/setup-terraform@v2
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
       - name: Retrieve artifact from build step
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
@@ -149,7 +149,6 @@ jobs:
         id: terraform-deploy
         working-directory: terraform/
         env:
-          AWS_DEFAULT_REGION: us-west-2
           TF_VAR_edl_base_url: ${{ secrets.EDL_BASE_URL }}
           TF_VAR_edl_client_id: ${{ secrets.EDL_CLIENT_ID }}
           TF_VAR_edl_client_secret: ${{ secrets.EDL_CLIENT_SECRET }}
