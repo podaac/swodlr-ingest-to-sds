@@ -100,7 +100,6 @@ jobs:
       - name: Build lambda package
         run: |
           ./build.sh
-          echo "deploy_env=${{ env.TARGET_ENV }}" >> $GITHUB_OUTPUT
       - name: Upload packaged zip
         uses: actions/upload-artifact@v3.1.0
         with:
