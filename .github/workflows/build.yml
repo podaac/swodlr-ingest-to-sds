@@ -182,7 +182,7 @@ jobs:
             {
               "message": "${{ github.repository }} [version ${{ env.SUBMODULE_VERSION }}] has been deployed to the ${{ needs.build.outputs.deploy_env }} environment"
             }
-      - name: Send notifications to slack
+      - name: Send failure notifications to slack
         if: failure()
         uses: slackapi/slack-github-action@v1.25.0
         env:
