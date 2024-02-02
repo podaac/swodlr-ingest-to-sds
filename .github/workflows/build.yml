@@ -192,4 +192,3 @@ jobs:
             {
               "message": "ERROR: ${{ github.repository }} [version ${{ env.SUBMODULE_VERSION }}] has encountered an error while trying to deploy to the ${{ needs.build.outputs.deploy_env }} environment"
             }
-    
