@@ -19,6 +19,7 @@ on:
         options:
           - SIT
           - UAT
+          - OPS
       commit:
         type: string
         description: Custom commit hash
@@ -93,12 +94,13 @@ jobs:
       - name: Bump rc version
         if: startsWith(github.ref, 'refs/heads/release/') && github.event_name != 'workflow_dispatch'
         run: |
-          bumpver --tag rc --tag-num
+          bumpver update -f --tag rc --tag-num
           echo "TARGET_ENV=UAT" >> $GITHUB_ENV
       - name: Release version
         if: github.ref == 'refs/heads/main' && github.event_name != 'workflow_dispatch'
         run: |
-          bumpver --tag final
+          bumpver update -f --tag final
+          echo "TARGET_ENV=OPS" >> $GITHUB_ENV
       - name: Set the target environment to ${{ env.TARGET_ENV }}
         id: set-env
         run: |
