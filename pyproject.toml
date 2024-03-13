@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "swodlr-ingest-to-sds"
+version = "0.0.2-alpha14"
+description = "A system for ingesting input products for the SWOT SDS"
+authors = ["podaac-tva <podaac-tva@jpl.nasa.gov>"]
+license = "Apache-2.0"
+readme = "README.md"
+packages = [
+  { include = "podaac" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+otello = {git = "https://github.com/hysds/otello.git", branch = "develop"}
+boto3-stubs-lite = {extras = ["dynamodb"], version = "^1.26.81"}
+swodlr-common = {git = "https://github.com/podaac/swodlr-common-py.git", rev = "develop"}
+
+[tool.poetry.group.dev.dependencies]
+boto3 = "^1.26.59"
+pytest = "^7.2.1"
+exceptiongroup = { version = "^1.1.0", python = "<3.11" }
+python-dotenv = "^0.21.1"
+flake8 = "^6.0.0"
+bumpver = "^2022.1120"
+pylint = "^2.16.2"
+
+[tool.poetry.scripts]
+ingest = 'podaac.swodlr_ingest_to_sds.__main__:main'
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
