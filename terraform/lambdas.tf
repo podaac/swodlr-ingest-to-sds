@@ -13,6 +13,7 @@ resource "aws_lambda_function" "bootstrap" {
 resource "aws_lambda_function" "submit_to_sds" {
   function_name = "${local.service_prefix}-submit_to_sds"
   handler = "podaac.swodlr_ingest_to_sds.submit_to_sds.lambda_handler"
+  timeout = 300
 
   role = aws_iam_role.lambda.arn
   runtime = "python3.9"
@@ -29,6 +30,7 @@ resource "aws_lambda_function" "submit_to_sds" {
 resource "aws_lambda_function" "poll_status" {
   function_name = "${local.service_prefix}-poll_status"
   handler = "podaac.swodlr_ingest_to_sds.poll_status.lambda_handler"
+  timeout = 300
 
   role = aws_iam_role.lambda.arn
   runtime = "python3.9"
@@ -186,6 +188,7 @@ resource "aws_iam_role" "lambda" {
 
 # -- SSM Parameters --
 resource "aws_ssm_parameter" "sds_pcm_release_tag" {
+  count = var.sds_pcm_release_tag == null ? 0 : 1
   name  = "${local.service_path}/sds_pcm_release_tag"
   type  = "String"
   value = var.sds_pcm_release_tag

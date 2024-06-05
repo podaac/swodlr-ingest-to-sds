@@ -23,6 +23,7 @@ variable "region" {
 
 variable "sds_pcm_release_tag" {
     type = string
+    default = null
 }
 
 variable "sds_host" {
