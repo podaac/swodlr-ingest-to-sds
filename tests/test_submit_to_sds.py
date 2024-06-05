@@ -9,13 +9,16 @@ from os import environ
 with (
     patch('boto3.client'),
     patch('otello.mozart.Mozart.get_job_type'),
+    patch('podaac.swodlr_common.utilities.BaseUtilities.get_latest_job_version'),  # pylint: disable-next=line-too-long # noqa: E501
+    patch('podaac.swodlr_ingest_to_sds.utilities.utils.get_grq_es_client') as mock_es_client,  # pylint: disable-next=line-too-long # noqa: E501
     patch.dict(environ, {
         'SWODLR_ENV': 'dev',
         'SWODLR_sds_username': 'test_username',
         'SWODLR_sds_password': 'test_password',
         'SWODLR_ingest_table_name': 'test_ingest_table_name',
         'SWODLR_ingest_queue_url': 'test_ingest_queue_url',
-        'SWODLR_available_tiles_table': 'test_available_tiles_table'
+        'SWODLR_available_tiles_table': 'test_available_tiles_table',
+        'SWODLR_sds_host': 'http://sds-host.test/'
     })
 ):
     from podaac.swodlr_ingest_to_sds import submit_to_sds
