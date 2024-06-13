@@ -11,14 +11,13 @@ from podaac.swodlr_ingest_to_sds.utilities import utils
 ACCEPTED_EXTS = ['nc']
 INGEST_QUEUE_URL = utils.get_param('ingest_queue_url')
 INGEST_TABLE_NAME = utils.get_param('ingest_table_name')
-PCM_RELEASE_TAG = utils.get_param('sds_pcm_release_tag')
 
 dynamodb = boto3.client('dynamodb')
 sqs = boto3.client('sqs')
 
 logger = utils.get_logger(__name__)
 ingest_job_type = utils.mozart_client.get_job_type(
-    f'job-INGEST_STAGED:{PCM_RELEASE_TAG}'
+    utils.get_latest_job_version('job-INGEST_STAGED')
 )
 ingest_job_type.initialize()
 
