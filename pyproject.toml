@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "swodlr-ingest-to-sds"
-version = "1.0.1"
+version = "1.0.1-rc0"
 description = "A system for ingesting input products for the SWOT SDS"
 authors = ["podaac-tva <podaac-tva@jpl.nasa.gov>"]
 license = "Apache-2.0"
