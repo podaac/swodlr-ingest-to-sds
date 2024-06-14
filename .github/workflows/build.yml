@@ -88,7 +88,7 @@ jobs:
             # Bump patch version first then append tag
             bumpver update --patch --tag alpha --tag-num
           else
-            bumpver update --tag alpha --tag-num
+            bumpver update -f -n --tag alpha --tag-num
           fi
           echo "TARGET_ENV=SIT" >> $GITHUB_ENV
       - name: Bump rc version
