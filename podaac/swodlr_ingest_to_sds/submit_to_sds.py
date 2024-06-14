@@ -78,7 +78,9 @@ def lambda_handler(event, _context):
                 )
             # Otello throws generic Exceptions
             except Exception:  # pylint: disable=broad-exception-caught
-                logger.exception('Failed to ingest granule')
+                logger.exception(
+                    'Failed to ingest granule id: %s', granule['id']
+                )
 
     return {'jobs': jobs}
 
@@ -107,7 +109,10 @@ def _ingest_granule(granule):
     ingest_job_type.set_input_params(job_params)
     job = ingest_job_type.submit_job(tag=tag)
     timestamp = datetime.now().isoformat()
-    logger.info('Submitted to sds: %s', granule['id'])
+    logger.info(
+        'Submitted to sds - granule id: %s, job id: %s',
+        granule['id'], job.job_id
+    )
 
     return {
         'job_id': job.job_id,
