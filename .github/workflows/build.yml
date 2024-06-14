@@ -3,7 +3,13 @@ name: Build 'n Deploy
 on: 
   push:
     branches:
-      - '*'
+      - main
+      - develop
+      - 'release/**'
+      - 'feature/**'
+      - 'issue/**'
+      - 'issues/**'
+      - 'dependabot/**'
     tags-ignore:
       - '*'
     paths-ignore:
