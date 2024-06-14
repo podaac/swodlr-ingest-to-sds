@@ -81,7 +81,7 @@ jobs:
 
           TARGET_ENV=${{ github.event.inputs.venue }}
       - name: Bump alpha version
-        if: github.ref == 'refs/heads/develop' && github.event_name != 'workflow_dispatch' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/develop' && github.event_name != 'workflow_dispatch'
         run: |
           TAG=$(bumpver show -e | awk -F= '$1 == "TAG" {print $2};')
           if [ $TAG == 'final' ]; then
@@ -92,12 +92,12 @@ jobs:
           fi
           echo "TARGET_ENV=SIT" >> $GITHUB_ENV
       - name: Bump rc version
-        if: startsWith(github.ref, 'refs/heads/release/') && github.event_name != 'workflow_dispatch' && github.event_name != 'pull_request'
+        if: startsWith(github.ref, 'refs/heads/release/') && github.event_name != 'workflow_dispatch'
         run: |
           bumpver update -f -n --tag rc --tag-num
           echo "TARGET_ENV=UAT" >> $GITHUB_ENV
       - name: Release version
-        if: github.ref == 'refs/heads/main' && github.event_name != 'workflow_dispatch' && github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'workflow_dispatch'
         run: |
           bumpver update -f --tag final
           echo "TARGET_ENV=OPS" >> $GITHUB_ENV
@@ -128,9 +128,9 @@ jobs:
     environment: 
       name: ${{ needs.build.outputs.deploy_env }}
     if: |
-      (github.ref == 'refs/heads/develop' && github.event_name != 'pull_request') ||
-      (github.ref == 'refs/heads/main' && github.event_name != 'pull_request')   ||
-      (startsWith(github.ref, 'refs/heads/release') && github.event_name != 'pull_request') ||
+      (github.ref == 'refs/heads/develop') ||
+      (github.ref == 'refs/heads/main')   ||
+      (startsWith(github.ref, 'refs/heads/release') ) ||
       github.event_name == 'workflow_dispatch'
     steps:
       - name: Configure AWS credentials
