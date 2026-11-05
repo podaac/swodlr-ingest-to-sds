@@ -1,0 +1,66 @@
+name: Destroy deployment
+on:
+  # Manual only: run from the Actions tab
+  workflow_dispatch:
+    inputs:
+      venue:
+        type: choice
+        description: Venue to destroy
+        options:
+          - SIT
+          - UAT
+      confirm:
+        type: string
+        description: Type the venue name again to confirm
+
+# Don't run at the same time as a deploy against the same Terraform state
+concurrency:
+  group: swodlr-ingest-to-sds-terraform-${{ github.event.inputs.venue }}
+
+jobs:
+  destroy:
+    name: Destroy
+    runs-on: ubuntu-latest
+    # Skipped unless the confirmation matches the selected venue
+    if: github.event.inputs.venue == github.event.inputs.confirm
+    environment:
+      name: ${{ github.event.inputs.venue }}
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-west-2
+          role-session-name: GitHubActions
+          aws-access-key-id: ${{ secrets[vars.AWS_ACCESS_KEY_ID_SECRET_NAME] }}
+          aws-secret-access-key: ${{ secrets[vars.AWS_SECRET_ACCESS_KEY_SECRET_NAME] }}
+          mask-aws-account-id: true
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      - name: Create placeholder Lambda package
+        # Terraform hashes dist/<name>-<version>.zip while planning, even for a
+        # destroy, so the file must exist. Its contents are never deployed.
+        run: |
+          NAME=$(sed -n 's/^name = "\(.*\)"/\1/p' pyproject.toml | head -1)
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml | head -1)
+          mkdir -p dist
+          touch "dist/${NAME}-${VERSION}.zip"
+      - name: Destroy ${{ github.event.inputs.venue }}
+        working-directory: terraform/
+        env:
+          TF_VAR_edl_base_url: ${{ secrets.EDL_BASE_URL }}
+          TF_VAR_edl_client_id: ${{ secrets.EDL_CLIENT_ID }}
+          TF_VAR_edl_client_secret: ${{ secrets.EDL_CLIENT_SECRET }}
+          TF_VAR_session_encryption_key: ${{ secrets.SESSION_ENCRYPTION_KEY }}
+          TF_VAR_ingest_aws_account: ${{ secrets.INGEST_AWS_ACCOUNT }}
+          TF_VAR_ingest_aws_role: ${{ secrets.INGEST_AWS_ROLE }}
+          TF_VAR_sds_ca_cert_path: ${{ runner.temp }}/JPLICA.pem
+          TF_VAR_sds_host: ${{ secrets.SDS_HOST }}
+          TF_VAR_sds_username: ${{ secrets.SDS_USERNAME }}
+          TF_VAR_sds_password: ${{ secrets.SDS_PASSWORD }}
+        run: |
+          echo "${{ secrets.JPLICA_CERT }}" >> ${{ runner.temp }}/JPLICA.pem
+          source bin/config.sh ${{ vars.TF_VENUE }}
+          terraform destroy -auto-approve
