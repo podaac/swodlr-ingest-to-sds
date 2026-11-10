@@ -63,4 +63,7 @@ jobs:
         run: |
           echo "${{ secrets.JPLICA_CERT }}" >> ${{ runner.temp }}/JPLICA.pem
           source bin/config.sh ${{ vars.TF_VENUE }}
-          terraform destroy -auto-approve
+          # -refresh=false: this stack looks up resources owned by swodlr-api
+          # (DynamoDB, SQS). If those are already gone, refreshing fails, so
+          # destroy from the state recorded at the last deploy instead.
+          terraform destroy -auto-approve -refresh=false
